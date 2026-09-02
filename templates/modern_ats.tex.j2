@@ -1,0 +1,98 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=0.55in]{geometry}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{charter}
+\usepackage{xcolor}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    urlcolor=black
+}
+
+\titlespacing*{\section}{0pt}{8pt}{4pt}
+\titleformat{\section}{\large\bfseries\uppercase}{}{0pt}{}[\titlerule]
+\setlist[itemize]{leftmargin=1.2em, itemsep=2pt, topsep=2pt, parsep=0pt}
+\pagestyle{empty}
+
+\begin{document}
+
+% --- Header ---
+\begin{center}
+    {\Huge \textbf{\VAR{r.name}}} \\[4pt]
+    \small \textbf{\VAR{r.title}} \quad\textbullet\quad \VAR{r.location} \\[2pt]
+    \small
+    \href{mailto:\VAR{r.email}}{\VAR{r.email}} \quad\textbullet\quad
+    \VAR{r.phone} \quad\textbullet\quad
+    \href{\VAR{r.linkedin_url}}{LinkedIn} \quad\textbullet\quad
+    \href{\VAR{r.github_url}}{GitHub}
+\end{center}
+
+% --- Technical Skills ---
+\section{Technical Skills}
+\begin{itemize}[leftmargin=*, label={}]
+    \item \textbf{Languages:} \VAR{r.skills.languages | join(', ')}
+    \item \textbf{Frameworks \& Libraries:} \VAR{r.skills.frameworks | join(', ')}
+    \item \textbf{Databases \& Storage:} \VAR{r.skills.databases | join(', ')}
+    \item \textbf{Tools \& Systems:} \VAR{r.skills.tools_and_systems | join(', ')}
+\end{itemize}
+
+% --- Projects ---
+\section{Projects}
+\BLOCK{for proj in r.projects}
+\noindent\textbf{\VAR{proj.name}} \hfill \href{\VAR{proj.link}}{\small Code} \\
+\textit{\small Tech Stack: \VAR{proj.stack | join(', ')}}
+\begin{itemize}
+    \BLOCK{for bullet in proj.bullets}
+    \item \VAR{bullet}
+    \BLOCK{endfor}
+\end{itemize}
+\vspace{2pt}
+\BLOCK{endfor}
+
+% --- Experience ---
+\BLOCK{if r.experience}
+\section{Experience}
+\BLOCK{for exp in r.experience}
+\noindent\textbf{\VAR{exp.role}} \hfill \VAR{exp.start_date} -- \VAR{exp.end_date} \\
+\textit{\VAR{exp.company}} \hfill \textit{\VAR{exp.location}}
+\begin{itemize}
+    \BLOCK{for bullet in exp.bullets}
+    \item \VAR{bullet}
+    \BLOCK{endfor}
+\end{itemize}
+\vspace{2pt}
+\BLOCK{endfor}
+\BLOCK{endif}
+
+% --- Education ---
+\section{Education}
+\BLOCK{for edu in r.education}
+\noindent\textbf{\VAR{edu.institution}} \hfill \VAR{edu.start_date} -- \VAR{edu.end_date} \\
+\textit{\VAR{edu.degree}} \hfill \textit{\VAR{edu.location}}
+\BLOCK{if edu.gpa}
+\\ \small GPA: \VAR{edu.gpa}
+\BLOCK{endif}
+\BLOCK{if edu.coursework}
+\\ \small \textit{Relevant Coursework:} \VAR{edu.coursework | join(', ')}
+\BLOCK{endif}
+\vspace{2pt}
+\BLOCK{endfor}
+
+% --- Certifications & Leadership ---
+\BLOCK{if r.certifications or r.leadership}
+\section{Certifications \& Community}
+\begin{itemize}
+    \BLOCK{for cert in r.certifications}
+    \item \textbf{\VAR{cert.name}} -- \VAR{cert.issuer} (\VAR{cert.date})
+    \BLOCK{endfor}
+    \BLOCK{for lead in r.leadership}
+    \item \textbf{\VAR{lead.role}}, \textit{\VAR{lead.organization}} (\VAR{lead.date})
+    \BLOCK{endfor}
+\end{itemize}
+\BLOCK{endif}
+
+\end{document}

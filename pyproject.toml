@@ -1,0 +1,63 @@
+[project]
+name = "cv-pipeline"
+version = "0.1.0"
+description = "Market-driven automated ATS resume generator"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "google-genai>=2.21.0",
+    "jinja2>=3.1.6",
+    "keyring>=25.7.0",
+    "pydantic>=2.13.5",
+    "python-jobspy>=1.1.82",
+    "pyyaml>=6.0.3",
+    "rich>=15.0.0",
+    "typer>=0.27.2",
+]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.6.2",
+    "ruff>=0.16.5",
+    "ty>=0.0.77",
+]
+
+[tool.ruff]
+line-length = 100
+src = ["src"]
+exclude = [
+    ".git",
+    "__pycache__",
+    ".venv",
+    "output",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "W",
+    "F",
+    "I",
+    "B",
+    "C4",
+    "UP",
+    "S",
+    "SIM",
+    "RUF",
+]
+
+ignore = [
+    "E501",
+    "S101",
+    "RUF001"
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
+combine-as-imports = true
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"

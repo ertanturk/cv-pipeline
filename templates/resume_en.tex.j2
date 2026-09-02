@@ -1,0 +1,154 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=0.45in]{geometry}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{lmodern}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    urlcolor=black,
+    pdftitle={Resume},
+    pdfpagemode=FullScreen
+}
+
+\urlstyle{same}
+\pagestyle{empty}
+\raggedbottom
+\raggedright
+
+\titleformat{\section}{
+  \vspace{-4pt}\scshape\raggedright\normalsize\bfseries
+}{}{0em}{}[\color{black}\titlerule \vspace{-3pt}]
+
+\setlist[itemize]{
+  leftmargin=1.1em,
+  label=\small\textbullet,
+  itemsep=1pt,
+  topsep=1.5pt,
+  parsep=0pt,
+  partopsep=0pt
+}
+
+\begin{document}
+
+{% if photo_path %}
+\begin{minipage}[c]{0.83\textwidth}
+    {\LARGE\bfseries {{ name }}}\\[2pt]
+    {\footnotesize\bfseries {{ title }}}\\[2pt]
+    \footnotesize
+    {{ location }} $\cdot$ {{ email }} $\cdot$ {{ phone }}\\[2pt]
+    \href{{{ linkedin_url }}}{LinkedIn} $\cdot$ \href{{{ github_url }}}{GitHub}{% if portfolio_url %} $\cdot$ \href{{{ portfolio_url }}}{Portfolio}{% endif %}
+\end{minipage}%
+\begin{minipage}[c]{0.17\textwidth}
+    \raggedleft
+    \includegraphics[width=0.92\linewidth,height=1.18\linewidth,keepaspectratio]{{ "{" }}{{ photo_path }}{{ "}" }}
+\end{minipage}
+{% else %}
+\begin{center}
+    {\LARGE\bfseries {{ name }}}\\[2pt]
+    {\footnotesize\bfseries {{ title }}}\\[2pt]
+    \footnotesize
+    {{ location }} $\cdot$ {{ email }} $\cdot$ {{ phone }}\\[2pt]
+    \href{{{ linkedin_url }}}{LinkedIn} $\cdot$ \href{{{ github_url }}}{GitHub}{% if portfolio_url %} $\cdot$ \href{{{ portfolio_url }}}{Portfolio}{% endif %}
+\end{center}
+{% endif %}
+
+\vspace{-4pt}
+
+{% if summary %}
+\section{Summary}
+\footnotesize {{ summary }}
+\vspace{2pt}
+{% endif %}
+
+\section{Education}
+{% for edu in education %}
+\noindent
+\textbf{{{ edu.institution }}} \hfill {{ edu.location }}\\
+\textit{{{ edu.degree }}}{% if edu.gpa %} $\cdot$ GPA: {{ edu.gpa }}{% endif %} \hfill {{ edu.start_date }} -- {{ edu.end_date }}\\
+{% if edu.coursework %}
+\textbf{Relevant Coursework:} {{ edu.coursework[:6] | join(', ') }}\\
+{% endif %}
+\vspace{1.5pt}
+{% endfor %}
+
+\section{Technical Skills}
+\begin{itemize}[leftmargin=*,label={}]
+    \item \textbf{Languages:} {{ skills.languages | join(', ') }}
+    {% if skills.frameworks %}
+    \item \textbf{Frameworks \& Libraries:} {{ skills.frameworks | join(', ') }}
+    {% endif %}
+    {% if skills.tools_and_systems %}
+    \item \textbf{Developer Tools \& Systems:} {{ skills.tools_and_systems | join(', ') }}
+    {% endif %}
+    {% if skills.databases %}
+    \item \textbf{Databases \& Infrastructure:} {{ skills.databases | join(', ') }}
+    {% endif %}
+\end{itemize}
+\vspace{-2pt}
+
+{% if languages %}
+\section{Languages}
+\begin{itemize}[leftmargin=*,label={}]
+    \item {% for lang in languages %}\textbf{{{ lang.name }}}: {{ lang.level }}{% if not loop.last %} $\cdot$ {% endif %}{% endfor %}
+\end{itemize}
+\vspace{-2pt}
+{% endif %}
+
+\section{Technical Projects}
+{% for project in projects %}
+\noindent
+\textbf{{{ project.name }}} $\mid$ \textit{{{ project.stack | join(', ') }}} \hfill \href{{{ project.link }}}{Code/Demo}\\
+\begin{itemize}
+    {% for bullet in project.bullets[:4] %}
+    \item {{ bullet }}
+    {% endfor %}
+\end{itemize}
+\vspace{1.5pt}
+{% endfor %}
+
+{% if experience %}
+\section{Experience}
+{% for exp in experience %}
+\noindent
+\textbf{{{ exp.role }}} $\mid$ \textbf{{{ exp.company }}} \hfill {{ exp.location }}\\
+\textit{{{ exp.employment_type }}} \hfill {{ exp.start_date }} -- {{ exp.end_date }}\\
+\begin{itemize}
+    {% for bullet in exp.bullets[:4] %}
+    \item {{ bullet }}
+    {% endfor %}
+\end{itemize}
+\vspace{1.5pt}
+{% endfor %}
+{% endif %}
+
+{% if leadership %}
+\section{Leadership \& Open Source}
+{% for item in leadership %}
+\noindent
+\textbf{{{ item.role }}} $\mid$ \textbf{{{ item.organization }}} \hfill {{ item.date }}\\
+\begin{itemize}
+    {% for bullet in item.bullets[:3] %}
+    \item {{ bullet }}
+    {% endfor %}
+\end{itemize}
+\vspace{1.5pt}
+{% endfor %}
+{% endif %}
+
+{% if certifications %}
+\section{Certifications \& Honors}
+\begin{itemize}
+    {% for cert in certifications %}
+    \item \textbf{{{ cert.name }}} -- {{ cert.issuer }} \hfill {{ cert.date }}
+    {% endfor %}
+\end{itemize}
+{% endif %}
+
+\end{document}
