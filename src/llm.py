@@ -233,6 +233,7 @@ class GeminiEngine:
         target_role: str,
         schema: type[BatchTailoredProjectsResult] = BatchTailoredProjectsResult,
         language: str = "en",
+        max_projects: int = 3,
     ) -> BatchTailoredProjectsResult:
         """Tailors multiple projects simultaneously: overview bullet first, then details ordered by impact."""
         prompt = build_tailor_batch_prompt(
@@ -240,6 +241,7 @@ class GeminiEngine:
             top_skills=top_skills,
             target_role=target_role,
             language=language,
+            max_projects=max_projects,
         )
 
         return self._generate(

@@ -1,6 +1,17 @@
-"""Pydantic validation models strictly compatible with Gemini OpenAPI schema engine."""
+from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+
+def _coerce_str_list(v: Any) -> list[str]:
+    if v is None:
+        return []
+    if isinstance(v, list):
+        return [str(x) for x in v if x is not None and str(x).strip()]
+    if isinstance(v, str):
+        s = v.strip()
+        return [s] if s else []
+    return [str(v)]
 
 
 class PrimaryRole(BaseModel):
@@ -66,6 +77,8 @@ class JobExtractionResult(BaseModel):
 class EducationItem(BaseModel):
     """Academic degree, institution, GPA, and relevant coursework record."""
 
+    model_config = ConfigDict(coerce_numbers_to_str=True, extra="ignore")
+
     institution: str = ""
     location: str = ""
     degree: str = ""
@@ -74,18 +87,32 @@ class EducationItem(BaseModel):
     end_date: str = ""
     coursework: list[str] = Field(default_factory=list)
 
+    @field_validator("coursework", mode="before")
+    @classmethod
+    def _coerce_coursework(cls, v: Any) -> list[str]:
+        return _coerce_str_list(v)
+
 
 class TechnicalSkills(BaseModel):
     """Categorized technical proficiencies, ordered by live market demand."""
+
+    model_config = ConfigDict(coerce_numbers_to_str=True, extra="ignore")
 
     languages: list[str] = Field(default_factory=list)
     frameworks: list[str] = Field(default_factory=list)
     tools_and_systems: list[str] = Field(default_factory=list)
     databases: list[str] = Field(default_factory=list)
 
+    @field_validator("languages", "frameworks", "tools_and_systems", "databases", mode="before")
+    @classmethod
+    def _coerce_skills(cls, v: Any) -> list[str]:
+        return _coerce_str_list(v)
+
 
 class SpokenLanguageItem(BaseModel):
     """Natural spoken language and verified CEFR or fluency level."""
+
+    model_config = ConfigDict(coerce_numbers_to_str=True, extra="ignore")
 
     name: str = ""
     level: str = ""
@@ -93,6 +120,8 @@ class SpokenLanguageItem(BaseModel):
 
 class ProjectItem(BaseModel):
     """Technical software project with verified highlights and technologies."""
+
+    model_config = ConfigDict(coerce_numbers_to_str=True, extra="ignore")
 
     name: str = ""
     stack: list[str] = Field(default_factory=list)
@@ -103,9 +132,16 @@ class ProjectItem(BaseModel):
     )
     bullets: list[str] = Field(default_factory=list)
 
+    @field_validator("stack", "bullets", mode="before")
+    @classmethod
+    def _coerce_project_lists(cls, v: Any) -> list[str]:
+        return _coerce_str_list(v)
+
 
 class ExperienceItem(BaseModel):
     """Professional or academic employment history item."""
+
+    model_config = ConfigDict(coerce_numbers_to_str=True, extra="ignore")
 
     role: str = ""
     company: str = ""
@@ -115,9 +151,16 @@ class ExperienceItem(BaseModel):
     end_date: str = ""
     bullets: list[str] = Field(default_factory=list)
 
+    @field_validator("bullets", mode="before")
+    @classmethod
+    def _coerce_experience_bullets(cls, v: Any) -> list[str]:
+        return _coerce_str_list(v)
+
 
 class LeadershipItem(BaseModel):
     """Leadership, mentoring, student club, or open-source community contribution."""
+
+    model_config = ConfigDict(coerce_numbers_to_str=True, extra="ignore")
 
     role: str = ""
     organization: str = ""
@@ -125,9 +168,16 @@ class LeadershipItem(BaseModel):
     link: str = ""
     bullets: list[str] = Field(default_factory=list)
 
+    @field_validator("bullets", mode="before")
+    @classmethod
+    def _coerce_leadership_bullets(cls, v: Any) -> list[str]:
+        return _coerce_str_list(v)
+
 
 class CertificationItem(BaseModel):
     """Formal industry certification, license, or verified award."""
+
+    model_config = ConfigDict(coerce_numbers_to_str=True, extra="ignore")
 
     name: str = ""
     issuer: str = ""
@@ -136,6 +186,8 @@ class CertificationItem(BaseModel):
 
 class ResumeData(BaseModel):
     """Final validated payload injected into resume_tr.tex.j2 or resume_en.tex.j2."""
+
+    model_config = ConfigDict(coerce_numbers_to_str=True, extra="ignore")
 
     candidate_tier: str = "student"
     name: str = ""
@@ -221,14 +273,23 @@ class BatchTailoredProjectsResult(BaseModel):
 
 
 class TailoredSectionItem(BaseModel):
+    model_config = ConfigDict(coerce_numbers_to_str=True, extra="ignore")
+
     title: str = Field(default="", description="Role or organization title matching source")
     bullets: list[str] = Field(
         default_factory=list,
         description="Action-oriented accomplishment bullets in the target language",
     )
 
+    @field_validator("bullets", mode="before")
+    @classmethod
+    def _coerce_section_bullets(cls, v: Any) -> list[str]:
+        return _coerce_str_list(v)
+
 
 class TailoredNonProjectContent(BaseModel):
+    model_config = ConfigDict(coerce_numbers_to_str=True, extra="ignore")
+
     summary: str = Field(
         default="",
         description="High-impact engineering summary tailored to target role and language",
@@ -244,11 +305,20 @@ class TailoredNonProjectContent(BaseModel):
 
 
 class CompactProjectItem(BaseModel):
+    model_config = ConfigDict(coerce_numbers_to_str=True, extra="ignore")
+
     project_name: str = Field(default="", description="Project name matching resume project item")
     bullets: list[str] = Field(default_factory=list, description="Compressed project bullets")
 
+    @field_validator("bullets", mode="before")
+    @classmethod
+    def _coerce_compact_bullets(cls, v: Any) -> list[str]:
+        return _coerce_str_list(v)
+
 
 class CompactResumeContent(BaseModel):
+    model_config = ConfigDict(coerce_numbers_to_str=True, extra="ignore")
+
     summary: str = Field(default="", description="Compressed resume summary")
     projects: list[CompactProjectItem] = Field(
         default_factory=list, description="Compressed bullets per project"

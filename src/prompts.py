@@ -70,11 +70,10 @@ Core Rules:
 8. Cut unnecessary adjectives and adverbs; every word must carry factual weight.
 9. Do not use em dashes. Use commas or periods instead.
 10. Avoid these hollow/inflated words: "utilize", "leverage", "spearheaded", "passionate", "dynamic", "synergy", "cutting-edge", "game-changer", "unlock", "revolutionize", "seamless", "robust" (unless it's a verified technical term), "world-class", "results-driven".
+11. Implicit Subject (STRICT): Never start a bullet with the pronoun "I". English resume bullets drop the subject entirely — begin directly with the past-tense action verb (e.g. "Mentored 40+ students...", not "I mentored 40+ students..."). This applies to every bullet in every section, regardless of the grammatical person used internally.
+12. Strict 1-Page Layout Economy & Item Selection: A professional engineering resume has an absolute 1-page limit. When multiple projects, experiences, or credentials compete for space, strictly prioritize the most technically rigorous and role-aligned items. For technical projects, only the top 3 strongest, most role-relevant projects can be accommodated on the resume. Experiences and certifications must be similarly prioritized to prevent multi-page overflow.
 """.strip()
 
-# ==============================================================================
-# TURKISH LOCALIZATION FRAMEWORK CONSTANTS (Senior Tech Colloquial Standard)
-# ==============================================================================
 
 TURKISH_WHITEBOARD_PRINCIPLE = """
 SENIOR TECH COLLOQUIAL STANDARD (BEYAZ TAHTA PRENSİBİ):
@@ -153,6 +152,7 @@ Temel Kurallar:
 7. Gereksiz sıfat ve zarfları at (ör. "son derece", "oldukça", "gerçekten", "büyük bir titizlikle").
 8. Em dash (—) kullanma; virgül veya nokta kullan. Noktalı virgül kullanma.
 9. Şu klişe/yapay ifadelerden kaçın: "yolculuk", "potansiyel", "sinerji", "güçlendirmek", "dönüştürmek", "yenilikçi çözümler", "vizyoner", "tutkuyla", "uçtan uca çözüm", "değer katmak", "fark yaratmak", "en iyi deneyim", "köklü", "kusursuz".
+10. Tek Sayfa Alan Ekonomisi ve Önceliklendirme (1-Page Economy): Teknik özgeçmiş kesinlikle tek sayfaya sığmalıdır. Eğer aday profilinde birden fazla proje, deneyim veya sertifika varsa, hedeflenen rol ve pozisyon ile en güçlü örtüşen en fazla 3 teknik projeyi ve en etkili deneyimleri seç. Sayfa bütçesini aşacak gereksiz veya zayıf detayları ele.
 
 {TURKISH_LOCALIZATION_DIRECTIVES}
 """.strip()
@@ -200,6 +200,7 @@ COMBINING RULE: a bullet may combine two highlights into one natural sentence ON
 NOTE ON SCALE: the highlights list may contain many items. More source material means a HIGHER selection bar, not more packed into the output — pick only the 2-4 (across both bullets) most impressive, role-relevant facts and discard the rest.
 If no verifiable metric exists in the source data, keep the impact technical and concrete without inventing numbers.
 Always use first-person singular ("geliştirdim/kurdum/yürüttüm"). If team_size > 1, frame individual contributions within the team context using first-person ownership (e.g., "Led the backend implementation in a 3-person team..."). Never switch to third-person singular.
+If Language Requirement is English, never start a bullet with the pronoun "I" — drop the subject and begin directly with the action verb (e.g. "Led the backend implementation...", not "I led the backend implementation...").
 """.strip()
     if is_tr:
         return (
@@ -213,6 +214,7 @@ def build_tailor_batch_prompt(
     top_skills: list[str],
     target_role: str,
     language: str = "en",
+    max_projects: int = 3,
 ) -> str:
     formatted_projects: list[str] = []
     for idx, p in enumerate(projects_data, start=1):
@@ -232,26 +234,33 @@ Target Role: {target_role}
 Language: {lang_instruction}
 Top Market Competencies: {", ".join(top_skills)}
 
-Below are {len(projects_data)} verified candidate projects.
-For EACH project, produce exactly 3 concise accomplishment bullets under its exact project_name.
+Below are {len(projects_data)} candidate projects.
+STRICT 1-PAGE LAYOUT & SELECTION MANDATE:
+A high-density technical resume strictly cannot exceed ONE page. A single-page ATS resume can fit at most {max_projects} technical projects.
+If more than {max_projects} projects are supplied below, evaluate all of them and choose ONLY the {max_projects} strongest, most technically impressive, and most role-aligned projects for the Target Role ({target_role}) and Top Market Competencies. Omit the remaining weaker/less relevant projects completely.
+If {max_projects} or fewer projects are provided, tailor all of them.
+
+For EACH of the chosen projects (maximum {max_projects}), produce exactly 3 concise accomplishment bullets under its exact project_name.
 Bullet contract per project:
 - Bullet #1 MUST be an enriched rewrite of the project's Overview (description).
-- Bullets #2 and #3 together MUST represent the strongest, most role-relevant facts selected from Verified Accomplishments, ordered by importance (most impactful/role-relevant first).
+- Bullets #2 and #3 together MUST represent the strongest, most role-relevant facts chosen from Verified Accomplishments, prioritized by importance (most impactful/role-relevant first).
 Do not collapse all meaning into one sentence; keep three distinct bullets with varied openings.
 COMBINING RULE: a bullet may combine two highlights into one natural sentence ONLY if they describe the same closely-related mechanism or feature (e.g. a technique and the safeguard built into it). Do not combine two unrelated achievements just to fit more in. Each of bullets #2 and #3 may draw from at most 2 highlights — never 3 or more, and never as a way to summarize broadly.
 NOTE ON SCALE: a project's Verified Accomplishments list may contain many items (even dozens). More source material does NOT mean more should be packed into the output — it means your selection bar gets HIGHER: with more highlights available, only pick the 2-4 (across bullets #2 and #3 combined) that are genuinely the most impressive and role-relevant, and discard the rest without hesitation. Never let bullet length or density grow just because the source list is long.
 
 Rules:
 1. Use natural engineering language and varied sentence openings.
-2. Foreground candidate technologies that intersect with the Top Market Competencies.
+2. Foreground candidate technologies that intersect with the Top Market Competencies and Target Role ({target_role}).
 3. Never hallucinate skills or metrics.
 4. Bullet #1 can only use facts from Overview; do not substitute it with a highlight.
 5. Bullets #2 and #3 can only use facts present in that same project's highlights.
 6. If no metric exists for a project, do not invent one; keep the bullet concrete with technical outcome wording.
 7. Team-size sensitivity: emphasize individual ownership and execution regardless of team size.
 8. Grammatical Person (STRICT): All project bullets MUST strictly use first-person singular (in Turkish: "geliştirdim/kurdum/tasarladım"). Never use third-person singular ("geliştirdi/kurdu"). If team_size > 1, emphasize individual ownership and execution within the team context using first-person verbs.
+9. Implicit Subject in English (STRICT): If Language is English, never start a bullet with "I". Drop the subject and open directly with the action verb (e.g. "Architected multi-stage Docker build pipelines...", not "I architected...").
+10. Selection Cap: Output at most {max_projects} projects in total.
 
-PROJECTS TO TAILOR:
+PROJECTS TO EVALUATE & TAILOR:
 {"=" * 60}
 {chr(10).join(formatted_projects)}
 """.strip()
@@ -331,8 +340,9 @@ Operational Rules:
 2. Summary: Keep it concise (1-2 sentences) and human-sounding. Preserve meaning, but do not translate sentence-by-sentence.
 3. Bullets: Rewrite all experience and leadership bullets with clear technical actions and outcomes in natural {lang_instruction}.
 4. Zero Hallucination: Preserve authentic metrics (e.g. 40+, 100+). Do NOT invent tools or responsibilities.
-5. Scope rule: this prompt is ONLY for non-project CV sections; therefore use first-person singular throughout all outputs.
-6. Tense rule by chronology: if an item is ongoing (end_date/date shows "Present", "Current", "Now", "Devam"), use present tense; otherwise use past tense.{directives_block}
+5. Scope rule: this prompt is ONLY for non-project CV sections; therefore use first-person singular throughout all outputs. If Output Language is English, this means implicit first-person: never start a bullet with "I" — drop the subject and begin directly with the action verb (e.g. "Mentored 40+ students...", not "I mentored 40+ students...").
+6. Tense rule by chronology: if an item is ongoing (end_date/date shows "Present", "Current", "Now", "Devam"), use present tense; otherwise use past tense.
+7. 1-Page Layout Economy & Prioritization: To ensure the resume strictly fits onto a single page alongside technical projects, keep experience and leadership bullets dense and concise (maximum 2-3 high-impact bullets per role). Prioritize accomplishments with concrete metrics and strong technical alignment with {target_role}.{directives_block}
 
 CANDIDATE SECTIONS TO ADAPT:
 ---

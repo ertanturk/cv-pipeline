@@ -37,50 +37,100 @@ def _build_market_weights(market_analysis: MarketAnalysisResult) -> dict[str, fl
     return weights
 
 
-def _reorder_skill_list(skills: list[str], market_weights: dict[str, float]) -> list[str]:
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+
+
+def _reorder_skill_list(skills: list[Any], market_weights: dict[str, float]) -> list[str]:
+    cleaned = [str(s).strip() for s in (skills or []) if s is not None and str(s).strip()]
     return sorted(
-        skills,
-        key=lambda skill: market_weights.get(skill.lower().strip(), 0.0),
+        cleaned,
+        key=lambda skill: market_weights.get(skill.lower(), 0.0),
         reverse=True,
     )
 
 
-def resolve_profile_photo(explicit_path: str | None, project_root: Path = Path(".")) -> str | None:
+def resolve_profile_photo(
+    explicit_path: str | None,
+    project_root: Path | None = None,
+    profile_dir: Path | None = None,
+) -> str | None:
     """Locates candidate profile picture from explicit path or standard assets directory.
 
     Args:
         explicit_path: Path specified in profile personal_info, if any.
         project_root: Root directory to search for default image assets.
+        profile_dir: Directory containing candidate profile, used to resolve relative paths.
 
     Returns:
         Resolved absolute string path to the image, or None if not found.
     """
-    if explicit_path and Path(explicit_path).is_file():
-        return str(Path(explicit_path).resolve())
+    if explicit_path:
+        p = Path(explicit_path)
+        if p.is_file():
+            return str(p.resolve())
+        if profile_dir and (profile_dir / explicit_path).is_file():
+            return str((profile_dir / explicit_path).resolve())
+        return None
 
-    assets_dir = project_root / "assets"
-    if assets_dir.is_dir():
-        for filename in (
-            "profile.jpg",
-            "profile.png",
-            "photo.jpg",
-            "photo.png",
-            "avatar.jpg",
-            "avatar.png",
-        ):
-            candidate = assets_dir / filename
-            if candidate.is_file():
-                return str(candidate.resolve())
+    search_roots = [project_root] if project_root is not None else [Path("."), PROJECT_ROOT]
+    for root in search_roots:
+        assets_dir = root / "assets"
+        if assets_dir.is_dir():
+            for filename in (
+                "profile.jpg",
+                "profile.png",
+                "photo.jpg",
+                "photo.png",
+                "avatar.jpg",
+                "avatar.png",
+            ):
+                candidate = assets_dir / filename
+                if candidate.is_file():
+                    return str(candidate.resolve())
     return None
 
 
+MAX_PROJECTS = 3
+MAX_EXPERIENCE = 3
+MAX_LEADERSHIP = 2
+MAX_CERTIFICATIONS = 3
+
+
 def _score_project_alignment(
-    project_dict: dict[str, Any], market_weights: dict[str, float]
+    project_dict: dict[str, Any],
+    market_weights: dict[str, float],
+    target_role: str = "",
 ) -> float:
-    stack: list[str] = project_dict.get("stack", [])
-    if not stack:
-        return 0.0
-    return sum(market_weights.get(tech.lower().strip(), 0.0) for tech in stack)
+    """Scores project suitability for the target role, live market demand, and technical depth."""
+    score = 0.0
+    raw_stack = project_dict.get("stack") or []
+    stack = [str(tech).strip() for tech in raw_stack if tech is not None and str(tech).strip()]
+    if stack:
+        score += sum(market_weights.get(tech.lower(), 0.0) for tech in stack)
+
+    if target_role:
+        role_tokens = {
+            t.lower().strip()
+            for t in target_role.replace("/", " ").replace("-", " ").split()
+            if len(t.strip()) > 2
+        }
+        name = str(project_dict.get("name") or "").lower()
+        desc = str(project_dict.get("description") or "").lower()
+        stack_str = " ".join(stack).lower()
+        search_text = f"{name} {desc} {stack_str}"
+
+        for token in role_tokens:
+            if token in search_text:
+                score += 15.0
+
+    raw_highlights = project_dict.get("highlights") or []
+    highlights = [str(h) for h in raw_highlights if h is not None]
+    score += min(len(highlights) * 2.0, 10.0)
+    for h in highlights:
+        if any(c.isdigit() for c in h):
+            score += 3.0
+
+    return score
 
 
 def _normalize_lookup_key(value: Any) -> str:
@@ -101,11 +151,13 @@ def _parse_team_size(value: Any) -> int | None:
     return parsed if parsed > 0 else None
 
 
-def _dedupe_nonempty(items: list[str]) -> list[str]:
+def _dedupe_nonempty(items: list[Any] | None) -> list[str]:
     deduped: list[str] = []
     seen: set[str] = set()
-    for item in items:
-        clean = item.strip()
+    for item in items or []:
+        if item is None:
+            continue
+        clean = str(item).strip()
         if not clean:
             continue
         key = clean.casefold()
@@ -210,35 +262,44 @@ def run_tailor(
         s.name for s in market_analysis.top_skills[:10]
     ]
 
-    raw_skills = raw_dict.get("skills", {})
+    raw_skills = raw_dict.get("skills") or {}
     tailored_skills = TechnicalSkills(
-        languages=_reorder_skill_list(raw_skills.get("languages", []), market_weights),
-        frameworks=_reorder_skill_list(raw_skills.get("frameworks", []), market_weights),
+        languages=_reorder_skill_list(raw_skills.get("languages") or [], market_weights),
+        frameworks=_reorder_skill_list(raw_skills.get("frameworks") or [], market_weights),
         tools_and_systems=_reorder_skill_list(
-            raw_skills.get("tools_and_systems", []), market_weights
+            raw_skills.get("tools_and_systems") or [], market_weights
         ),
-        databases=_reorder_skill_list(raw_skills.get("databases", []), market_weights),
+        databases=_reorder_skill_list(raw_skills.get("databases") or [], market_weights),
     )
 
-    raw_projects: list[dict[str, Any]] = raw_dict.get("projects", [])
+    raw_projects: list[dict[str, Any]] = raw_dict.get("projects") or []
     sorted_projects = sorted(
         raw_projects,
-        key=lambda p: _score_project_alignment(p, market_weights),
+        key=lambda p: _score_project_alignment(p, market_weights, resolved_role),
         reverse=True,
     )
+
+    if len(sorted_projects) > MAX_PROJECTS:
+        log.info(
+            f"Candidate profile includes {len(sorted_projects)} projects; selecting top "
+            f"{MAX_PROJECTS} strongest projects for '{resolved_role}' to guarantee 1-page fit."
+        )
+        selected_projects = sorted_projects[:MAX_PROJECTS]
+    else:
+        selected_projects = sorted_projects
 
     projects_for_batch: list[dict[str, Any]] = []
     project_indices_to_batch: list[int] = []
     batch_position_by_project_index: dict[int, int] = {}
 
-    for idx, proj in enumerate(sorted_projects):
-        name = proj.get("name", "")
-        desc = proj.get("description", "")
-        highlights = proj.get("highlights", [])
+    for idx, proj in enumerate(selected_projects):
+        name = str(proj.get("name") or "")
+        desc = str(proj.get("description") or "")
+        highlights = [str(h) for h in (proj.get("highlights") or []) if h is not None]
         words = len(desc.split()) + sum(len(h.split()) for h in highlights)
 
         if words >= 15:
-            prioritized_stack = _reorder_skill_list(proj.get("stack", []), market_weights)
+            prioritized_stack = _reorder_skill_list(proj.get("stack") or [], market_weights)
             batch_position = len(projects_for_batch)
             projects_for_batch.append(
                 {
@@ -262,6 +323,7 @@ def run_tailor(
                 top_skills=top_keywords,
                 target_role=resolved_role,
                 language=language,
+                max_projects=MAX_PROJECTS,
             )
             for batch_pos, item in enumerate(batch_res.projects):
                 bullets = [b.text.strip() for b in item.bullets if b.text and b.text.strip()]
@@ -276,7 +338,7 @@ def run_tailor(
         except Exception as exc:
             log.warning(f"Batch project tailoring failed, falling back to raw highlights: {exc}")
     tailored_projects: list[ProjectItem] = []
-    for idx, proj in enumerate(sorted_projects):
+    for idx, proj in enumerate(selected_projects):
         name = proj.get("name", "")
         clean_name = _normalize_lookup_key(name)
         stack = _reorder_skill_list(proj.get("stack", []), market_weights)
@@ -308,9 +370,26 @@ def run_tailor(
             )
         )
 
-    personal = raw_dict.get("personal_info", {})
-    raw_exp = raw_dict.get("experience", [])
-    raw_lead = raw_dict.get("leadership", [])
+    personal = raw_dict.get("personal_info") or {}
+    raw_exp = raw_dict.get("experience") or []
+    if len(raw_exp) > MAX_EXPERIENCE:
+        log.info(
+            f"Candidate profile includes {len(raw_exp)} experience entries; selecting top "
+            f"{MAX_EXPERIENCE} most recent/relevant entries to guarantee 1-page fit."
+        )
+        selected_exp = raw_exp[:MAX_EXPERIENCE]
+    else:
+        selected_exp = raw_exp
+
+    raw_lead = raw_dict.get("leadership") or []
+    if len(raw_lead) > MAX_LEADERSHIP:
+        log.info(
+            f"Candidate profile includes {len(raw_lead)} leadership entries; selecting top "
+            f"{MAX_LEADERSHIP} entries to guarantee 1-page fit."
+        )
+        selected_lead = raw_lead[:MAX_LEADERSHIP]
+    else:
+        selected_lead = raw_lead
 
     # Tailor summary, experience, and leadership sections
     final_summary = personal.get("summary") or ""
@@ -322,8 +401,8 @@ def run_tailor(
         log.info(f"Tailoring summary, experience, and leadership into {language.upper()}...")
         sec_res = active_engine.tailor_profile_sections(
             summary=final_summary,
-            experience=raw_exp,
-            leadership=raw_lead,
+            experience=selected_exp,
+            leadership=selected_lead,
             target_role=resolved_role,
             top_skills=top_keywords,
             language=language,
@@ -340,48 +419,58 @@ def run_tailor(
         log.warning(f"Section tailoring failed, preserving source items: {exc}")
 
     tailored_experience: list[ExperienceItem] = []
-    for idx, exp in enumerate(raw_exp):
-        role = exp.get("role", "")
+    for idx, exp in enumerate(selected_exp):
+        role = str(exp.get("role") or "")
         role_key = _normalize_lookup_key(role)
         bullets: list[str] | None = None
         if role_key and exp_bullets_map.get(role_key):
             bullets = exp_bullets_map[role_key].popleft()
         elif sec_res and idx < len(sec_res.experience):
             bullets = sec_res.experience[idx].bullets
-        resolved_bullets = bullets or exp.get("bullets", [])
+        resolved_bullets = bullets or exp.get("bullets") or []
 
         tailored_experience.append(
             ExperienceItem(
                 role=role,
-                company=exp.get("company", ""),
-                location=exp.get("location", ""),
-                employment_type=exp.get("employment_type", ""),
-                start_date=exp.get("start_date", ""),
-                end_date=exp.get("end_date", ""),
+                company=str(exp.get("company") or ""),
+                location=str(exp.get("location") or ""),
+                employment_type=str(exp.get("employment_type") or ""),
+                start_date=str(exp.get("start_date") or ""),
+                end_date=str(exp.get("end_date") or ""),
                 bullets=resolved_bullets,
             )
         )
 
     tailored_leadership: list[LeadershipItem] = []
-    for idx, lead in enumerate(raw_lead):
-        role = lead.get("role", "")
+    for idx, lead in enumerate(selected_lead):
+        role = str(lead.get("role") or "")
         role_key = _normalize_lookup_key(role)
         bullets: list[str] | None = None
         if role_key and lead_bullets_map.get(role_key):
             bullets = lead_bullets_map[role_key].popleft()
         elif sec_res and idx < len(sec_res.leadership):
             bullets = sec_res.leadership[idx].bullets
-        resolved_bullets = bullets or lead.get("bullets", [])
+        resolved_bullets = bullets or lead.get("bullets") or []
 
         tailored_leadership.append(
             LeadershipItem(
                 role=role,
-                organization=lead.get("organization", ""),
-                date=lead.get("date", ""),
-                link=lead.get("link", ""),
+                organization=str(lead.get("organization") or ""),
+                date=str(lead.get("date") or ""),
+                link=str(lead.get("link") or ""),
                 bullets=resolved_bullets,
             )
         )
+
+    raw_certs = raw_dict.get("certifications") or []
+    if len(raw_certs) > MAX_CERTIFICATIONS:
+        log.info(
+            f"Candidate profile includes {len(raw_certs)} certifications; selecting top "
+            f"{MAX_CERTIFICATIONS} entries to guarantee 1-page fit."
+        )
+        selected_certs = raw_certs[:MAX_CERTIFICATIONS]
+    else:
+        selected_certs = raw_certs
 
     def _parse_items(model: type[BaseModel], raw: list[Any]) -> list[Any]:
         items = []
@@ -392,7 +481,8 @@ def run_tailor(
                 continue
         return items
 
-    photo: str | None = resolve_profile_photo(personal.get("photo_path"))
+    profile_dir = profile_input.parent if isinstance(profile_input, Path) else None
+    photo: str | None = resolve_profile_photo(personal.get("photo_path"), profile_dir=profile_dir)
 
     if isinstance(target_role, RoleMatchResult):
         candidate_tier = target_role.candidate_tier
@@ -400,29 +490,29 @@ def run_tailor(
         profile_tier = _normalize_lookup_key(raw_dict.get("candidate_tier"))
         candidate_tier = profile_tier if profile_tier in {"student", "junior"} else "student"
 
-    resolved_title = personal.get("title", "")
+    resolved_title = personal.get("title") or ""
     if not resolved_title:
         resolved_title = resolved_role if candidate_tier == "junior" else f"{resolved_role} Intern"
 
     resume_data = ResumeData(
-        name=personal.get("name", ""),
+        name=personal.get("name") or "",
         title=resolved_title,
-        location=personal.get("location", ""),
-        email=personal.get("email", ""),
-        phone=personal.get("phone", ""),
-        linkedin_url=personal.get("linkedin_url", ""),
-        github_url=personal.get("github_url", ""),
+        location=personal.get("location") or "",
+        email=personal.get("email") or "",
+        phone=personal.get("phone") or "",
+        linkedin_url=personal.get("linkedin_url") or "",
+        github_url=personal.get("github_url") or "",
         portfolio_url=personal.get("portfolio_url") or "",
         photo_path=photo or "",
         summary=final_summary,
-        education=_parse_items(EducationItem, raw_dict.get("education", [])),
+        education=_parse_items(EducationItem, raw_dict.get("education") or []),
         skills=tailored_skills,
-        languages=_parse_items(SpokenLanguageItem, raw_dict.get("languages", [])),
-        projects=tailored_projects,
-        experience=tailored_experience,
+        languages=_parse_items(SpokenLanguageItem, raw_dict.get("languages") or []),
+        projects=tailored_projects[:MAX_PROJECTS],
+        experience=tailored_experience[:MAX_EXPERIENCE],
         candidate_tier=candidate_tier,
-        leadership=tailored_leadership,
-        certifications=_parse_items(CertificationItem, raw_dict.get("certifications", [])),
+        leadership=tailored_leadership[:MAX_LEADERSHIP],
+        certifications=_parse_items(CertificationItem, selected_certs)[:MAX_CERTIFICATIONS],
     )
 
     return resume_data

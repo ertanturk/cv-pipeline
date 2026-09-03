@@ -165,7 +165,7 @@ def _scrape_raw(
     total: int = len(queries)
     all_frames: list[pd.DataFrame] = []
 
-    with ThreadPoolExecutor(max_workers=total) as executor:
+    with ThreadPoolExecutor(max_workers=min(max(1, total), 8)) as executor:
         futures = {
             executor.submit(
                 _scrape_query,
@@ -357,7 +357,12 @@ def run_scraper(
                 ],
                 ignore_index=True,
             )
-            combined_df = combined_df.drop_duplicates(subset=["title", "company"], keep="first")
+            has_identity: pd.Series = (combined_df["title"] != "") & (combined_df["company"] != "")
+            df_with_id = combined_df[has_identity].drop_duplicates(
+                subset=["title", "company"], keep="first"
+            )
+            df_no_id = combined_df[~has_identity]
+            combined_df = pd.concat([df_with_id, df_no_id], ignore_index=True)
             log.info(f"Backfill complete; pool now at {len(combined_df)} listings.")
 
     final_df: pd.DataFrame = combined_df.head(target_count)

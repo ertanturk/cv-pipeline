@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import re
 from collections import Counter
 from collections.abc import Sequence
@@ -144,16 +145,57 @@ def prune_job_description(raw_text: str, max_chars: int = 2500) -> str:
 
 def _elect_canonical(variants: Counter[str]) -> str:
     """Elects the most frequent properly capitalized variant from observed names."""
+    if not variants:
+        return ""
     properly_cased = [(name, count) for name, count in variants.items() if name != name.lower()]
     if properly_cased:
         return max(properly_cased, key=lambda x: x[1])[0]
     return variants.most_common(1)[0][0]
 
 
+def determine_max_analyze(total_postings: int, requested_max: int | None = None) -> int:
+    """Calculates how many job postings to analyze based on available postings.
+
+    - If requested_max is explicitly provided (> 0), respects it up to total_postings.
+    - If total_postings <= 40, analyzes 100% of postings.
+    - If total_postings > 40, analyzes up to 50 postings to balance market coverage and API limits.
+    """
+    if total_postings <= 0:
+        return 0
+    if requested_max is not None and requested_max > 0:
+        return min(total_postings, requested_max)
+    if total_postings <= 40:
+        return total_postings
+    return min(total_postings, 50)
+
+
+def calculate_dynamic_batch_size(
+    payload_count: int,
+    requested_batch_size: int | None = None,
+    max_batch_capacity: int = 15,
+) -> int:
+    """Calculates optimal batch size to minimize API round trips while respecting prompt bounds.
+
+    - If requested_batch_size is explicitly provided (> 0), respects it.
+    - If payload_count <= max_batch_capacity, uses a single batch (1 API call).
+    - If payload_count > max_batch_capacity, splits evenly into ceil(payload_count / max_batch_capacity)
+      balanced batches so no prompt overflows and no tiny remainder batch is left.
+    """
+    if requested_batch_size is not None and requested_batch_size > 0:
+        return requested_batch_size
+    if payload_count <= 0:
+        return max_batch_capacity
+    if payload_count <= max_batch_capacity:
+        return payload_count
+
+    num_batches = math.ceil(payload_count / max_batch_capacity)
+    return math.ceil(payload_count / num_batches)
+
+
 def run_market_analyzer(
     postings: Sequence[JobPosting],
-    max_analyze: int = 15,
-    batch_size: int = 8,
+    max_analyze: int | None = None,
+    batch_size: int | None = None,
     engine: GeminiEngine | None = None,
 ) -> MarketAnalysisResult:
     """Executes batched Map-Reduce skill extraction across in-memory jobs."""
@@ -161,10 +203,11 @@ def run_market_analyzer(
         log.warning("No job postings provided for market analysis; returning empty result.")
         return MarketAnalysisResult(total_analyzed=0)
 
-    target_pool: list[JobPosting] = list(postings)[:max_analyze]
+    effective_max = determine_max_analyze(len(postings), max_analyze)
+    target_pool: list[JobPosting] = list(postings)[:effective_max]
     log.info(
         f"Initiating Stage 3: Market Analysis across {len(target_pool)} postings "
-        f"(Batched, max_analyze={max_analyze}, batch_size={batch_size})..."
+        f"(Dynamic max_analyze={effective_max} from {len(postings)} available postings)..."
     )
 
     active_engine: GeminiEngine = engine or GeminiEngine()
@@ -198,11 +241,23 @@ def run_market_analyzer(
         log.warning("No postings met minimum character requirements after pruning.")
         return MarketAnalysisResult(total_analyzed=0)
 
+    effective_batch_size = calculate_dynamic_batch_size(
+        len(prepared_payloads), requested_batch_size=batch_size
+    )
+    total_batches = math.ceil(len(prepared_payloads) / effective_batch_size)
+    log.info(
+        f"Configured dynamic batching: {len(prepared_payloads)} listings in "
+        f"{total_batches} batch(es) of up to {effective_batch_size} postings each."
+    )
+
     # Process in batches to minimize rate-limiter sleeps
     extractions: list[JobExtractionResult] = []
-    for chunk_start in range(0, len(prepared_payloads), batch_size):
-        chunk = prepared_payloads[chunk_start : chunk_start + batch_size]
-        log.info(f"Analyzing batch of {len(chunk)} job postings in a single prompt...")
+    for chunk_start in range(0, len(prepared_payloads), effective_batch_size):
+        chunk = prepared_payloads[chunk_start : chunk_start + effective_batch_size]
+        batch_idx = (chunk_start // effective_batch_size) + 1
+        log.info(
+            f"Analyzing batch {batch_idx}/{total_batches} ({len(chunk)} job postings) in a single prompt..."
+        )
 
         try:
             if hasattr(active_engine, "extract_batch_job_skills"):

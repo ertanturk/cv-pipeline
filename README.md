@@ -211,15 +211,16 @@ Executes the resume generation pipeline:
 cv run <profile_path> <output_dir> [options]
 ```
 
-| Option          | Flag   | Default            | Description                                      |
-| :-------------- | :----- | :----------------- | :----------------------------------------------- |
-| `--lang`        | `-l`   | `en`               | Resume output language (`en` or `tr`).           |
-| `--jobs`        | `-j`   | `15`               | Number of job postings to analyze.               |
-| `--location`    | `-loc` | `Istanbul, Turkey` | Target geographic job market.                    |
-| `--ui-lang`     |        | Interactive        | CLI display language (`en` or `tr`).             |
-| `--target-role` |        | Auto-detected      | Override target role title.                      |
-| `--verbose`     | `-v`   | `False`            | Show detailed debug logs during execution.       |
-| `--quiet`       | `-q`   | `False`            | Run in non-interactive mode with minimal output. |
+| Option          | Flag   | Default            | Description                                                        |
+| :-------------- | :----- | :----------------- | :----------------------------------------------------------------- |
+| `--lang`        | `-l`   | `en`               | Resume output language (`en` or `tr`).                             |
+| `--jobs`        | `-j`   | `50`               | Target number of active job postings to scrape.                    |
+| `--max-analyze` | `-ma`  | Auto / Dynamic     | Maximum job postings to analyze in market phase (scales with jobs).|
+| `--location`    | `-loc` | `Istanbul, Turkey` | Target geographic job market.                                      |
+| `--ui-lang`     |        | Interactive        | CLI display language (`en` or `tr`).                               |
+| `--target-role` |        | Auto-detected      | Override target role title.                                        |
+| `--verbose`     | `-v`   | `False`            | Show detailed debug logs during execution.                         |
+| `--quiet`       | `-q`   | `False`            | Run in non-interactive mode with minimal output.                   |
 
 ### `cv validate`
 

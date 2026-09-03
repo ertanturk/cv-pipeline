@@ -28,6 +28,8 @@ LLM_ARTIFACT_PATTERNS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"C\{\+\+\}"), "C++"),
     (re.compile(r"C\\texttt\\?\{(\#)\\?\}"), "C#"),
     (re.compile(r"C\{\#\}"), "C#"),
+    (re.compile(r"\*\*([^*]+)\*\*"), r"\1"),
+    (re.compile(r"`([^`]+)`"), r"\1"),
 ]
 
 

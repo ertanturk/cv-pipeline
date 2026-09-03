@@ -98,8 +98,8 @@ _MESSAGES: dict[str, dict[UiLanguage, str]] = {
         "tr": "Market sinyali olmadan devam ediliyor; CV üretimi yalnızca profil tabanlı yapılacak.",
     },
     "discovered_skills": {
-        "en": "Discovered {count} unique technical skills.",
-        "tr": "{count} benzersiz teknik yetkinlik bulundu.",
+        "en": "Analyzed {analyzed} listings; discovered {count} unique technical skills.",
+        "tr": "{analyzed} ilan incelendi; {count} benzersiz teknik yetkinlik bulundu.",
     },
     "step_tailor": {
         "en": "Tailoring Projects & Experience",

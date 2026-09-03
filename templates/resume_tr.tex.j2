@@ -48,15 +48,15 @@
     {{ location }} \enspace$\cdot$\enspace {{ email }} \enspace$\cdot$\enspace {{ phone }}\\[2pt]
     {% set contact_links = [] %}
     {% if linkedin_url %}
-      {% set _ = contact_links.append('\href{' ~ linkedin_url ~ '}{' ~ (linkedin_url | replace('https://', '') | replace('www.', '')) ~ '}') %}
+      {% set _ = contact_links.append('\\href{' ~ linkedin_url ~ '}{' ~ (linkedin_url | format_url_display) ~ '}') %}
     {% endif %}
     {% if github_url %}
-      {% set _ = contact_links.append('\href{' ~ github_url ~ '}{' ~ (github_url | replace('https://', '') | replace('www.', '')) ~ '}') %}
+      {% set _ = contact_links.append('\\href{' ~ github_url ~ '}{' ~ (github_url | format_url_display) ~ '}') %}
     {% endif %}
     {% if portfolio_url %}
-      {% set _ = contact_links.append('\href{' ~ portfolio_url ~ '}{' ~ (portfolio_url | replace('https://', '') | replace('www.', '')) ~ '}') %}
+      {% set _ = contact_links.append('\\href{' ~ portfolio_url ~ '}{' ~ (portfolio_url | format_url_display) ~ '}') %}
     {% endif %}
-    {{ contact_links | join(' \enspace$\mid$\enspace ') }}
+    {{ contact_links | join(' \\enspace$\\mid$\\enspace ') }}
 \end{minipage}%
 \begin{minipage}[c]{0.17\textwidth}
     \raggedleft
@@ -70,15 +70,15 @@
     {{ location }} \enspace$\cdot$\enspace {{ email }} \enspace$\cdot$\enspace {{ phone }}\\[2pt]
     {% set contact_links = [] %}
     {% if linkedin_url %}
-      {% set _ = contact_links.append('\href{' ~ linkedin_url ~ '}{' ~ (linkedin_url | replace('https://', '') | replace('www.', '')) ~ '}') %}
+      {% set _ = contact_links.append('\\href{' ~ linkedin_url ~ '}{' ~ (linkedin_url | format_url_display) ~ '}') %}
     {% endif %}
     {% if github_url %}
-      {% set _ = contact_links.append('\href{' ~ github_url ~ '}{' ~ (github_url | replace('https://', '') | replace('www.', '')) ~ '}') %}
+      {% set _ = contact_links.append('\\href{' ~ github_url ~ '}{' ~ (github_url | format_url_display) ~ '}') %}
     {% endif %}
     {% if portfolio_url %}
-      {% set _ = contact_links.append('\href{' ~ portfolio_url ~ '}{' ~ (portfolio_url | replace('https://', '') | replace('www.', '')) ~ '}') %}
+      {% set _ = contact_links.append('\\href{' ~ portfolio_url ~ '}{' ~ (portfolio_url | format_url_display) ~ '}') %}
     {% endif %}
-    {{ contact_links | join(' \enspace$\mid$\enspace ') }}
+    {{ contact_links | join(' \\enspace$\\mid$\\enspace ') }}
 \end{center}
 {% endif %}
 
@@ -106,7 +106,7 @@
 
 {% if experience %}
 \section{Deneyim}
-{% for exp in experience %}
+{% for exp in experience[:3] %}
 \noindent
 \textbf{ {{ exp.role }} } $\mid$ \textbf{ {{ exp.company }} } \hfill {{ exp.location }}\\
 \textit{ {{ exp.employment_type }} } \hfill {{ exp.start_date }} -- {{ exp.end_date }}\\
@@ -120,9 +120,9 @@
 {% endif %}
 
 \section{Teknik Projeler}
-{% for project in projects %}
+{% for project in projects[:3] %}
 \noindent
-\textbf{ {{- project.name -}} }{% if project.link %} \hfill \href{ {{- project.link -}} }{\footnotesize\texttt{ {{- project.link | replace('https://', '') | replace('www.', '') -}} }}{% endif %}\\
+\textbf{ {{- project.name -}} }{% if project.link %} \hfill \href{ {{- project.link -}} }{\footnotesize\texttt{ {{- project.link | format_url_display -}} }}{% endif %}\\
 \textit{\small {{ project.stack | join(', ') }} }\vspace{-1pt}
 \begin{itemize}
     {% for bullet in project.bullets[:3] %}
@@ -167,7 +167,7 @@
 
 {% if experience %}
 \section{Deneyim}
-{% for exp in experience %}
+{% for exp in experience[:3] %}
 \noindent
 \textbf{ {{ exp.role }} } $\mid$ \textbf{ {{ exp.company }} } \hfill {{ exp.location }}\\
 \textit{ {{ exp.employment_type }} } \hfill {{ exp.start_date }} -- {{ exp.end_date }}\\
@@ -181,9 +181,9 @@
 {% endif %}
 
 \section{Teknik Projeler}
-{% for project in projects %}
+{% for project in projects[:3] %}
 \noindent
-\textbf{ {{- project.name -}} }{% if project.link %} \hfill \href{ {{- project.link -}} }{\footnotesize\texttt{ {{- project.link | replace('https://', '') | replace('www.', '') -}} }}{% endif %}\\
+\textbf{ {{- project.name -}} }{% if project.link %} \hfill \href{ {{- project.link -}} }{\footnotesize\texttt{ {{- project.link | format_url_display -}} }}{% endif %}\\
 \textit{\small {{ project.stack | join(', ') }} }\vspace{-1pt}
 \begin{itemize}
     {% for bullet in project.bullets[:3] %}
@@ -212,9 +212,9 @@
 
 {% if leadership %}
 \section{Liderlik \& Açık Kaynak}
-{% for item in leadership %}
+{% for item in leadership[:2] %}
 \noindent
-\textbf{ {{ item.role }} } $\mid$ \textbf{ {{ item.organization }} }{% if item.link %} $\mid$ \href{ {{- item.link -}} }{\footnotesize\texttt{ {{- item.link | replace('https://', '') | replace('www.', '') -}} }}{% endif %} \hfill {{ item.date }}\\
+\textbf{ {{ item.role }} } $\mid$ \textbf{ {{ item.organization }} }{% if item.link %} $\mid$ \href{ {{- item.link -}} }{\footnotesize\texttt{ {{- item.link | format_url_display -}} }}{% endif %} \hfill {{ item.date }}\\
 \begin{itemize}
     {% for bullet in item.bullets[:2] %}
     \item {{ bullet }}
@@ -227,7 +227,7 @@
 {% if certifications %}
 \section{Sertifikalar \& Ödüller}
 \begin{itemize}
-    {% for cert in certifications %}
+    {% for cert in certifications[:3] %}
     \item \textbf{ {{ cert.name }} } -- {{ cert.issuer }} \hfill {{ cert.date }}
     {% endfor %}
 \end{itemize}

@@ -20,7 +20,7 @@ import yaml
 from src.languages import tr_message
 from src.llm import GeminiEngine
 from src.models import CompactResumeContent, MarketAnalysisResult, ResumeData, RoleMatchResult
-from src.pipeline.compiler import run_compiler
+from src.pipeline.compiler import cleanup_latex_artifacts, run_compiler
 from src.pipeline.market_analyzer import run_market_analyzer
 from src.pipeline.role_matcher import run_role_matcher
 from src.pipeline.scraper import run_scraper
@@ -435,15 +435,34 @@ def clean_workspace(
         console.print(f"{GLYPH_WARN} [warning]Directory does not exist: {output_dir}[/warning]")
         raise typer.Exit()
 
-    extensions = ["*.aux", "*.log", "*.out", "*.fls", "*.fdb_latexmk", "*.tex"]
+    extensions = [
+        "*.aux",
+        "*.log",
+        "*.out",
+        "*.fls",
+        "*.fdb_latexmk",
+        "*.synctex.gz",
+        "*.synctex",
+        "*.toc",
+        "*.nav",
+        "*.snm",
+        "*.vrb",
+        "*.bbl",
+        "*.blg",
+        "*.tex",
+    ]
     if all_files:
         extensions.append("*.pdf")
 
+    seen_paths: set[Path] = set()
     deleted = 0
     for ext in extensions:
         for f in output_dir.glob(ext):
-            f.unlink(missing_ok=True)
-            deleted += 1
+            if f.is_file() and f not in seen_paths:
+                seen_paths.add(f)
+                with contextlib.suppress(OSError):
+                    f.unlink()
+                    deleted += 1
 
     console.print(
         f"{GLYPH_CHECK} [success]Cleaned {deleted} compilation artifacts from {output_dir}.[/success]"
@@ -480,7 +499,15 @@ def run_pipeline(
             "-j",
             help="Target number of active job postings to scrape. / Taranacak aktif iş ilanı sayısı.",
         ),
-    ] = 15,
+    ] = 50,
+    max_analyze: Annotated[
+        int | None,
+        typer.Option(
+            "--max-analyze",
+            "-ma",
+            help="Maximum job postings to analyze in market phase (default: dynamic based on scraped count). / Pazar analizinde incelenecek maksimum ilan sayısı.",
+        ),
+    ] = None,
     location: Annotated[
         str,
         typer.Option(
@@ -639,7 +666,10 @@ def run_pipeline(
         if not quiet:
             format_step(3, 5, tr_message("step_market", ui_lang))
         with execute_step(tr_message("step_market_exec", ui_lang), verbose, quiet):
-            market_result = run_market_analyzer(postings=postings, max_analyze=8)
+            market_result = run_market_analyzer(
+                postings=postings,
+                max_analyze=max_analyze,
+            )
 
         if market_result.total_analyzed == 0 or not market_result.top_skills:
             should_continue = confirm_inline(
@@ -660,18 +690,25 @@ def run_pipeline(
                 )
 
         if not quiet:
+            skills_count = len(market_result.top_skills)
+            analyzed_count = market_result.total_analyzed
             discovered_message = tr_message("discovered_skills", ui_lang).format(
-                count=len(market_result.top_skills)
+                count=f"[highlight]{skills_count}[/highlight]",
+                analyzed=f"[highlight]{analyzed_count}[/highlight]",
             )
-            console.print(
-                f"    [brand]↳[/brand] {discovered_message.replace(str(len(market_result.top_skills)), f'[highlight]{len(market_result.top_skills)}[/highlight]')}"
-            )
+            console.print(f"    [brand]↳[/brand] {discovered_message}")
             if market_result.top_skills and not verbose:
                 console.print()
                 table_data = [
                     (s.name, s.mentions, s.share_percentage) for s in market_result.top_skills[:5]
                 ]
-                console.print(build_market_table(table_data, language=ui_lang))
+                console.print(
+                    build_market_table(
+                        table_data,
+                        total_postings=market_result.total_analyzed,
+                        language=ui_lang,
+                    )
+                )
                 console.print()
 
         if not quiet:
@@ -692,7 +729,8 @@ def run_pipeline(
             )
 
         template_name = "resume_en.tex.j2" if lang == "en" else "resume_tr.tex.j2"
-        out_filename = f"{tailored_resume.name.replace(' ', '_')}_Resume.pdf"
+        safe_name = re.sub(r"[^\w\-]", "_", tailored_resume.name.strip()).strip("_") or "Candidate"
+        out_filename = f"{safe_name}_Resume.pdf"
         tex_filename = out_filename.replace(".pdf", ".tex")
 
         if not quiet:
@@ -700,7 +738,7 @@ def run_pipeline(
         with execute_step(tr_message("step_compile_exec", ui_lang), verbose, quiet):
             pdf_path = run_compiler(
                 resume_data=tailored_resume,
-                template_dir="templates",
+                template_dir=str(PROJECT_ROOT / "templates"),
                 template_name=template_name,
                 output_dir=str(output_dir),
                 output_filename=out_filename,
@@ -778,7 +816,7 @@ def run_pipeline(
                 with execute_step(tr_message("compact_recompile_exec", ui_lang), verbose, quiet):
                     pdf_path = run_compiler(
                         resume_data=compact_candidate,
-                        template_dir="templates",
+                        template_dir=str(PROJECT_ROOT / "templates"),
                         template_name=template_name,
                         output_dir=str(output_dir),
                         output_filename=out_filename,
@@ -808,8 +846,12 @@ def run_pipeline(
                     f"Page budget exceeded after {len(compact_passes)} compact passes "
                     f"({page_count} pages). Removing oversized artifact."
                 )
-                with contextlib.suppress(OSError):
-                    pdf_path.unlink(missing_ok=True)
+                cleanup_latex_artifacts(
+                    output_dir=output_dir,
+                    file_stem=Path(out_filename).stem,
+                    include_tex=True,
+                    include_pdf=True,
+                )
                 compact_fail = tr_message("compact_failed_limit", ui_lang).format(
                     passes=len(compact_passes), pages=page_count
                 )
@@ -840,6 +882,14 @@ def run_pipeline(
     except typer.Exit:
         raise
     except Exception as e:
+        if "out_filename" in locals():
+            with contextlib.suppress(Exception):
+                cleanup_latex_artifacts(
+                    output_dir=output_dir,
+                    file_stem=Path(out_filename).stem,
+                    include_tex=True,
+                    include_pdf=True,
+                )
         fail_msg = tr_message("pipeline_failed", ui_lang).format(error=e)
         err_console.print(f"\n{GLYPH_CROSS} [error]{fail_msg}[/error]")
         if verbose:

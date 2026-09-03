@@ -72,6 +72,7 @@ def render_distribution_bar(percentage: float, width: int = 10) -> str:
 
 def build_market_table(
     skills_data: list[tuple[str, int, float]],
+    total_postings: int | None = None,
     language: str = "en",
 ) -> Table:
     """Renders flat skill market analysis table to stdout with multi-language support."""
@@ -87,9 +88,10 @@ def build_market_table(
         tr_message("market_col_num", language), justify="right", style="muted", width=3
     )
     table.add_column(tr_message("market_col_skill", language), style="highlight", min_width=22)
-    table.add_column(
-        tr_message("market_col_mentions", language), justify="right", style="muted", width=14
-    )
+    mentions_header = tr_message("market_col_mentions", language)
+    if total_postings and total_postings > 0:
+        mentions_header = f"{mentions_header} (/{total_postings})"
+    table.add_column(mentions_header, justify="right", style="muted", min_width=14)
     table.add_column(
         tr_message("market_col_share", language), justify="right", style="highlight", width=12
     )
