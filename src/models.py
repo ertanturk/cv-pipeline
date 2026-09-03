@@ -23,16 +23,16 @@ class AlternativeRole(BaseModel):
 
 
 class RoleMatchResult(BaseModel):
-    """Output schema for Stage 1 role matching."""
+    """Output schema for role matching."""
 
-    status: str = Field(
-        default="ok", description="'ok' if profile has enough data, else 'insufficient_data'"
+    status: str = Field(default="ok")
+    candidate_tier: str = Field(
+        default="student",
+        description="Either 'student' (active undergraduate/seeking internship) or 'junior' (graduated/seeking full-time entry-level)",
     )
     primary_role: PrimaryRole = Field(default_factory=PrimaryRole)
     alternative_roles: list[AlternativeRole] = Field(default_factory=list)
-    clarification_needed: str = Field(
-        default="", description="Explanation if status is insufficient_data"
-    )
+    clarification_needed: str = Field(default="")
 
 
 class JobPosting(BaseModel):
@@ -63,23 +63,11 @@ class JobExtractionResult(BaseModel):
     methodologies: list[str] = Field(default_factory=list)
 
 
-class BulletPoint(BaseModel):
-    """Single Google XYZ accomplishment statement."""
-
-    text: str = Field(default="", description="Accomplishment statement using Google XYZ syntax")
-    has_quantified_metric: bool = Field(
-        default=False, description="True if statement includes a quantified metric"
-    )
-
-
-class TailoredBulletsResult(BaseModel):
-    """Output schema for Stage 4 project/experience tailoring."""
-
-    status: str = Field(default="ok", description="'ok' or 'insufficient_data'")
-    bullets: list[BulletPoint] = Field(default_factory=list)
 
 
 class EducationItem(BaseModel):
+    """Academic degree, institution, GPA, and relevant coursework record."""
+
     institution: str = ""
     location: str = ""
     degree: str = ""
@@ -90,6 +78,8 @@ class EducationItem(BaseModel):
 
 
 class TechnicalSkills(BaseModel):
+    """Categorized technical proficiencies, ordered by live market demand."""
+
     languages: list[str] = Field(default_factory=list)
     frameworks: list[str] = Field(default_factory=list)
     tools_and_systems: list[str] = Field(default_factory=list)
@@ -97,18 +87,28 @@ class TechnicalSkills(BaseModel):
 
 
 class SpokenLanguageItem(BaseModel):
+    """Natural spoken language and verified CEFR or fluency level."""
+
     name: str = ""
     level: str = ""
 
 
 class ProjectItem(BaseModel):
+    """Technical software project with verified highlights and technologies."""
+
     name: str = ""
     stack: list[str] = Field(default_factory=list)
+    team_size: int | None = None
     link: str = ""
+    description: str = Field(
+        default="", description="One-line project overview, carried from source profile"
+    )
     bullets: list[str] = Field(default_factory=list)
 
 
 class ExperienceItem(BaseModel):
+    """Professional or academic employment history item."""
+
     role: str = ""
     company: str = ""
     location: str = ""
@@ -119,21 +119,28 @@ class ExperienceItem(BaseModel):
 
 
 class LeadershipItem(BaseModel):
+    """Leadership, mentoring, student club, or open-source community contribution."""
+
     role: str = ""
     organization: str = ""
     date: str = ""
+    link: str = ""
     bullets: list[str] = Field(default_factory=list)
 
 
 class CertificationItem(BaseModel):
+    """Formal industry certification, license, or verified award."""
+
     name: str = ""
     issuer: str = ""
     date: str = ""
 
 
+
 class ResumeData(BaseModel):
     """Final validated payload injected into resume_tr.tex.j2 or resume_en.tex.j2."""
 
+    candidate_tier: str = "student"
     name: str = ""
     title: str = ""
     location: str = ""
@@ -185,7 +192,7 @@ class MarketAnalysisResult(BaseModel):
 class BulletItem(BaseModel):
     """Single accomplishment bullet."""
 
-    text: str = Field(default="", description="Accomplishment bullet following Google XYZ formula")
+    text: str = Field(default="", description="Concise, factual accomplishment bullet")
 
 
 class BatchJobExtractionResult(BaseModel):
@@ -203,7 +210,7 @@ class TailoredProjectBatchItem(BaseModel):
     project_name: str = Field(default="", description="Exact name of the project")
     bullets: list[BulletItem] = Field(
         default_factory=list,
-        description="3 high-impact Google XYZ accomplishment bullets",
+        description="3 high-impact accomplishment bullets: bullet 1 is a one-sentence overview, bullets 2-3 are ordered by importance",
     )
 
 
@@ -213,4 +220,45 @@ class BatchTailoredProjectsResult(BaseModel):
     projects: list[TailoredProjectBatchItem] = Field(
         default_factory=list,
         description="List of tailored accomplishment bullet sets corresponding to input projects",
+    )
+
+
+class TailoredSectionItem(BaseModel):
+    title: str = Field(default="", description="Role or organization title matching source")
+    bullets: list[str] = Field(
+        default_factory=list,
+        description="Action-oriented accomplishment bullets in the target language",
+    )
+
+
+class TailoredNonProjectContent(BaseModel):
+    summary: str = Field(
+        default="",
+        description="High-impact engineering summary tailored to target role and language",
+    )
+    experience: list[TailoredSectionItem] = Field(
+        default_factory=list,
+        description="Tailored experience bullet sets in target language",
+    )
+    leadership: list[TailoredSectionItem] = Field(
+        default_factory=list,
+        description="Tailored leadership bullet sets in target language",
+    )
+
+
+class CompactProjectItem(BaseModel):
+    project_name: str = Field(default="", description="Project name matching resume project item")
+    bullets: list[str] = Field(default_factory=list, description="Compressed project bullets")
+
+
+class CompactResumeContent(BaseModel):
+    summary: str = Field(default="", description="Compressed resume summary")
+    projects: list[CompactProjectItem] = Field(
+        default_factory=list, description="Compressed bullets per project"
+    )
+    experience: list[TailoredSectionItem] = Field(
+        default_factory=list, description="Compressed bullets per experience item"
+    )
+    leadership: list[TailoredSectionItem] = Field(
+        default_factory=list, description="Compressed bullets per leadership item"
     )

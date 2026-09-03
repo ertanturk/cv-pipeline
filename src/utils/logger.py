@@ -11,6 +11,14 @@ LOGS_DIR = Path("logs")
 MAX_SESSIONS = 5
 
 
+class JobSpyFilter(logging.Filter):
+    """Drops log records originating from JobSpy or noisy network packages."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        name = record.name.lower()
+        return not (name.startswith("jobspy") or "jobspy" in name)
+
+
 class SessionLogger:
     """Manages session-scoped file logging with strict rolling disk retention."""
 
@@ -18,15 +26,34 @@ class SessionLogger:
     _session_path: Path | None = None
 
     @classmethod
-    def setup(cls, verbose: bool = False) -> logging.Logger:
-        """Initializes a new session log file and binds stream handlers."""
+    def setup(cls, verbose: bool = False, quiet: bool = False) -> logging.Logger:
+        """Initializes a new session log file and binds stream handlers, or reconfigures existing ones."""
         if cls._instance is not None:
+            # Reconfigure stream handler to respect updated verbose or quiet flags
+            stream_handlers = [
+                h for h in cls._instance.handlers
+                if isinstance(h, logging.StreamHandler) and not isinstance(h, logging.FileHandler)
+            ]
+            if quiet:
+                for h in stream_handlers:
+                    cls._instance.removeHandler(h)
+            elif stream_handlers:
+                for h in stream_handlers:
+                    h.setLevel(logging.DEBUG if verbose else logging.ERROR)
+            else:
+                stderr_formatter = logging.Formatter(fmt="[%(levelname)s] %(message)s")
+                stderr_handler = logging.StreamHandler(sys.stderr)
+                stderr_handler.setLevel(logging.DEBUG if verbose else logging.ERROR)
+                stderr_handler.setFormatter(stderr_formatter)
+                stderr_handler.addFilter(JobSpyFilter())
+                cls._instance.addHandler(stderr_handler)
+
+            cls._instance.debug(f"Logger reconfigured: verbose={verbose}, quiet={quiet}")
             return cls._instance
 
         LOGS_DIR.mkdir(parents=True, exist_ok=True)
-        cls._rotate_sessions(max_sessions=MAX_SESSIONS - 1)  # Leave room for current session
+        cls._rotate_sessions(max_sessions=MAX_SESSIONS - 1)
 
-        # Generate unique session timestamp
         session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
         cls._session_path = LOGS_DIR / f"session_{session_id}.log"
 
@@ -44,40 +71,66 @@ class SessionLogger:
         file_handler.setFormatter(file_formatter)
         logger.addHandler(file_handler)
 
-        stderr_formatter = logging.Formatter(fmt="[%(levelname)s] %(message)s")
-        stderr_handler = logging.StreamHandler(sys.stderr)
-        stderr_handler.setLevel(logging.DEBUG if verbose else logging.WARNING)
-        stderr_handler.setFormatter(stderr_formatter)
-        logger.addHandler(stderr_handler)
+        jobspy_filter = JobSpyFilter()
+        logging.getLogger().addFilter(jobspy_filter)
+
+        noisy_targets = [
+            "JobSpy",
+            "jobspy",
+            "JobSpy:Linkedin",
+            "JobSpy:LinkedIn",
+            "JobSpy:Indeed",
+            "JobSpy:Google",
+            "JobSpy:ZipRecruiter",
+            "JobSpy:Glassdoor",
+            "JobSpy:Bayt",
+            "urllib3",
+            "selenium",
+            "tls_client",
+            "curl_cffi",
+        ]
+        for name in noisy_targets:
+            lgr = logging.getLogger(name)
+            lgr.setLevel(logging.CRITICAL)
+            lgr.propagate = False
+            lgr.handlers.clear()
+            lgr.addFilter(jobspy_filter)
+
+        if not quiet:
+            stderr_formatter = logging.Formatter(fmt="[%(levelname)s] %(message)s")
+            stderr_handler = logging.StreamHandler(sys.stderr)
+            stderr_handler.setLevel(logging.DEBUG if verbose else logging.ERROR)
+            stderr_handler.setFormatter(stderr_formatter)
+            stderr_handler.addFilter(jobspy_filter)
+            logger.addHandler(stderr_handler)
 
         cls._instance = logger
-        cls._instance.debug(f"Session started. Log allocated at: {cls._session_path.resolve()}")
+        cls._instance.debug(
+            f"Session started. Log allocated at: {cls._session_path.resolve()} | "
+            f"Python {sys.version.split()[0]} on {sys.platform}"
+        )
         return cls._instance
 
     @classmethod
     def get_logger(cls) -> logging.Logger:
-        """Access the initialized logger instance."""
         if cls._instance is None:
             return cls.setup()
         return cls._instance
 
     @classmethod
     def get_session_path(cls) -> Path | None:
-        """Returns the active session file path on disk."""
         return cls._session_path
 
     @classmethod
     def fatal(
         cls, message: str, code: ExitCode = ExitCode.GENERAL_ERROR, exc: Exception | None = None
     ) -> None:
-        """Logs a critical failure to stderr/session file and exits with a system code."""
         logger = cls.get_logger()
         if exc:
             logger.exception(message)
         else:
             logger.error(message)
 
-        # Write error and log pointer to stderr
         session_file = cls.get_session_path()
         sys.stderr.write(f"\n[ERROR] {message}\n")
         if session_file:
@@ -85,12 +138,10 @@ class SessionLogger:
                 f"[DIAGNOSTICS] Detailed trace available: {session_file.resolve()}\n\n"
             )
         sys.stderr.flush()
-
         sys.exit(code)
 
     @classmethod
     def _rotate_sessions(cls, max_sessions: int = 4) -> None:
-        """Prunes historical session files, ensuring at most max_sessions exist."""
         try:
             sessions = sorted(
                 LOGS_DIR.glob("session_*.log"),

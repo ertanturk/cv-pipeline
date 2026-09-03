@@ -26,8 +26,8 @@ MODEL_LIMITS: dict[str, ModelLimits] = {
 _DEFAULT_LIMITS = ModelLimits(rpm=5, rpd=20)
 
 
-class BudgetExhaustedError(BaseException):
-    """Raised when the daily request budget for a model is exhausted or the limiter is aborted."""
+class BudgetExhaustedError(Exception):
+    """Raised when the daily request budget for an LLM model is exhausted or when aborted."""
 
 
 class RateLimiter:

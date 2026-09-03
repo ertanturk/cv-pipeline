@@ -14,8 +14,7 @@ from src.models import (
     MarketAnalysisResult,
     MarketSkill,
 )
-from src.utils.exit_codes import ExitCode
-from src.utils.logger import SessionLogger, log
+from src.utils.logger import log
 
 TAIL_CUTOFF_PATTERNS: list[re.Pattern[str]] = [
     re.compile(
@@ -159,25 +158,40 @@ def run_market_analyzer(
 ) -> MarketAnalysisResult:
     """Executes batched Map-Reduce skill extraction across in-memory jobs."""
     if not postings:
-        SessionLogger.fatal(
-            "No job postings provided for market analysis.", code=ExitCode.LLM_ERROR
-        )
+        log.warning("No job postings provided for market analysis; returning empty result.")
+        return MarketAnalysisResult(total_analyzed=0)
 
     target_pool: list[JobPosting] = list(postings)[:max_analyze]
-    log.info(f"Initiating Stage 3: Market Analysis across {len(target_pool)} postings (Batched)...")
+    log.info(
+        f"Initiating Stage 3: Market Analysis across {len(target_pool)} postings "
+        f"(Batched, max_analyze={max_analyze}, batch_size={batch_size})..."
+    )
 
     active_engine: GeminiEngine = engine or GeminiEngine()
 
-    # Prune all postings upfront
+    # Prune all postings upfront to reduce token volume
     prepared_payloads: list[dict[str, str]] = []
+    total_raw_chars = 0
+    total_pruned_chars = 0
     for idx, job in enumerate(target_pool, start=1):
+        raw_len = len(job.description)
+        total_raw_chars += raw_len
         pruned = prune_job_description(job.description)
-        if len(pruned) >= 40:
+        pruned_len = len(pruned)
+        total_pruned_chars += pruned_len
+        if pruned_len >= 40:
             prepared_payloads.append({"title": job.title, "company": job.company, "text": pruned})
+            log.debug(f"Job #{idx} ('{job.title}' at '{job.company}'): pruned {raw_len} -> {pruned_len} chars")
         else:
-            log.warning(f"Job #{idx} description too short after pruning; skipping.")
+            log.warning(f"Job #{idx} ('{job.title}') description too short after pruning ({pruned_len} chars); skipping.")
+
+    log.debug(
+        f"Pruning complete: {len(prepared_payloads)}/{len(target_pool)} postings retained "
+        f"({total_raw_chars} -> {total_pruned_chars} total characters)"
+    )
 
     if not prepared_payloads:
+        log.warning("No postings met minimum character requirements after pruning.")
         return MarketAnalysisResult(total_analyzed=0)
 
     # Process in batches to minimize rate-limiter sleeps
@@ -276,6 +290,11 @@ def run_market_analyzer(
         f"Analyzed {successful_parses} listings. "
         f"Discovered {len(ranked_tools)} unique tools and {len(ranked_methodologies)} methodologies."
     )
+    for tool in ranked_tools[:8]:
+        log.debug(
+            f"Top market tool: '{tool.name}' | {tool.mentions} mentions "
+            f"({tool.share_percentage}%) | {tool.required_count} required"
+        )
 
     return MarketAnalysisResult(
         total_analyzed=successful_parses,

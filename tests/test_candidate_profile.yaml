@@ -1,0 +1,115 @@
+personal_info:
+    name: "Ertan Tunç Türk"
+    title: "Backend & Systems Software Engineer"
+    location: "Istanbul, Turkey"
+    email: "ertantuncturk@gmail.com"
+    phone: "+90 532 417 6928"
+    linkedin_url: "https://linkedin.com/in/ertantuncturk"
+    github_url: "https://github.com/ertantuncturk"
+    portfolio_url: "https://ertantuncturk.dev"
+    photo_path: null
+    summary: "Backend and systems engineering talent focused on high-throughput architectures, asynchronous I/O, and Linux systems programming. Proven track record in developing memory-efficient C++ engines, automated CI/CD security tooling, and asynchronous backend services."
+
+education:
+    - institution: "MEF University"
+      location: "Istanbul, Turkey"
+      degree: "B.S. in Computer Engineering"
+      gpa: "3.45/4.00"
+      start_date: "09/2023"
+      end_date: "06/2027"
+      coursework:
+          - "Data Structures & Algorithms"
+          - "Operating Systems"
+          - "Database Management Systems"
+          - "Computer Networks"
+          - "Object-Oriented Programming"
+          - "Software Engineering Principles"
+
+skills:
+    languages:
+        - "Python"
+        - "C++"
+        - "SQL"
+        - "Bash"
+    frameworks:
+        - "FastAPI"
+        - "Pydantic"
+        - "AsyncIO"
+        - "Pytest"
+        - "Typer"
+    tools_and_systems:
+        - "Docker"
+        - "Linux (POSIX/Bash)"
+        - "Git & GitHub Actions (CI/CD)"
+        - "Modern Python Toolchain (uv, Ruff)"
+        - "Gitleaks"
+        - "CMake"
+    databases:
+        - "PostgreSQL"
+        - "Redis"
+        - "SQLite (WAL Mode)"
+
+languages:
+    - name: "Turkish"
+      level: "Native"
+    - name: "English"
+      level: "Professional Working Proficiency (C1)"
+
+projects:
+    - name: "Automated Blackboard Sync Engine"
+      stack: ["Python", "FastAPI", "AsyncIO", "SQLite", "OAuth2"]
+      team_size: 1
+      link: "https://github.com/ertantuncturk/blackboard-sync"
+      description: "An asynchronous background daemon and CLI that handles persistent HTTP sessions, authenticated feeds, and differential file sync."
+      highlights:
+          - "Engineered an asynchronous HTTP pooling engine with automated OAuth2 session refresh to stream course materials concurrently."
+          - "Designed an automated differential sync algorithm backed by SQLite WAL-mode and SHA-256 checksums, eliminating 90% of redundant downloads."
+          - "Implemented exponential backoff retry mechanisms and atomic file writes to guarantee zero data corruption during network drops."
+
+    - name: "PyForge Deploy CI/CD Security Engine"
+      stack: ["Python", "Docker", "GitHub Actions", "Gitleaks", "Linux"]
+      team_size: 1
+      link: "https://github.com/ertantuncturk/pyforge-deploy"
+      description: "A developer tool designed to orchestrate container builds, linting workflows, and automated package releases with strict security gates."
+      highlights:
+          - "Architected multi-stage Docker build pipelines with layer caching, reducing container image size and release cycle duration by 75%."
+          - "Integrated AST-based static analysis, pre-commit hooks, and Gitleaks security gates into CI pipelines to ensure 100% secret leakage protection."
+          - "Structured automated semantic versioning and changelog generation using GitHub Actions build matrices across multiple environments."
+
+    - name: "High-Performance 2D Systems Engine"
+      stack: ["C++", "SFML", "CMake", "Linux Core"]
+      team_size: 1
+      link: "https://github.com/ertantuncturk/tetris2048"
+      description: "A hybrid real-time 2D systems engine blending spatial collision detection with fixed-timestep physics loops and minimal CPU footprint."
+      highlights:
+          - "Architected a cache-friendly spatial matrix collision system with O(1) memory allocation per tick, eliminating heap allocations in the main game loop."
+          - "Stabilized game render loop using fixed-delta timestep accumulation, sustaining a smooth 60 FPS at sub-5% CPU utilization on Linux."
+          - "Profiled memory safety using Valgrind and AddressSanitizer, maintaining zero memory leaks across 10,000+ simulated block cycles."
+
+experience:
+    - role: "Undergraduate Teaching Assistant (Data Structures)"
+      company: "MEF University"
+      location: "Istanbul, Turkey"
+      employment_type: "Part-time"
+      start_date: "10/2025"
+      end_date: "06/2026"
+      bullets:
+          - "Mentored 40+ engineering students in lab sessions focused on C++ pointer arithmetic, dynamic memory allocation, and algorithmic complexity."
+          - "Reviewed and debugged 100+ weekly code submissions, enforcing Valgrind leak tests, clean architecture, and modern C++ best practices."
+
+leadership:
+    - role: "Open Source Tooling Maintainer"
+      organization: "Developer Community"
+      date: "2024 -- Present"
+      link: "https://github.com/ertantuncturk/dev-configs"
+      bullets:
+          - "Authored and maintained reusable modern developer configurations, shell automations (Fish/Bash), and fast CLI workflows across GitHub."
+          - "Established strict repository linting guidelines leveraging Ruff and pre-commit hooks, standardizing contributor codebases."
+
+certifications:
+    - name: "High Honor Roll Student"
+      issuer: "MEF University Faculty of Engineering"
+      date: "2024"
+    - name: "PostgreSQL & Relational Database Design"
+      issuer: "Coursera / Meta"
+      date: "2025"

@@ -72,8 +72,11 @@ def run_role_matcher(
 
     log.info(
         f"Primary role matched: '{result.primary_role.title}' "
-        f"(Confidence: {result.primary_role.confidence_score}%)"
+        f"(Confidence: {result.primary_role.confidence_score}%, Tier: {result.candidate_tier})"
     )
+    if result.alternative_roles:
+        alt_str = ", ".join(f"'{alt.title}' ({alt.confidence_score}%)" for alt in result.alternative_roles)
+        log.debug(f"Alternative roles identified: {alt_str}")
     log.debug(f"Generated search queries: {result.primary_role.search_queries}")
 
     return result

@@ -15,5 +15,5 @@ logs/
 # Output
 output/
 
-# Tests
-tests/
+# Assets
+assets/*

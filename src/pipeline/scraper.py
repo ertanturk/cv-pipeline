@@ -287,19 +287,21 @@ def run_scraper(
     )
 
     if not raw_frames:
-        SessionLogger.fatal(
-            f"All scraper queries returned zero listings for location='{location}'.",
-            code=ExitCode.SCRAPER_ERROR,
-        )
+        log.warning(f"All scraper queries returned zero listings for location='{location}'.")
+        return []
 
     combined_df: pd.DataFrame = _normalize_and_deduplicate(raw_frames)
     initial_count: int = len(combined_df)
-    log.debug(f"Total raw listings collected: {initial_count}")
+    log.debug(f"Total raw listings collected before filtering: {initial_count}")
+
+    if combined_df.empty:
+        log.warning(f"No valid job postings remained after deduplication for location='{location}'.")
+        return []
 
     domain_keywords: frozenset[str] = (
         _build_domain_keywords([role_title, *resolved_queries]) if role_title else frozenset()
     )
-    log.debug(f"Domain keywords: {sorted(domain_keywords)}")
+    log.debug(f"Domain keywords for relevancy filtering: {sorted(domain_keywords)}")
 
     pre_filter_count: int = len(combined_df)
     if _is_early_career(job_type, role_title):
@@ -374,5 +376,9 @@ def run_scraper(
         f"Scraping completed: {len(job_postings)} valid listings retained in memory "
         f"(deduplicated from {initial_count} raw listings)."
     )
+    for idx, jp in enumerate(job_postings[:10], start=1):
+        log.debug(f"Retained listing #{idx}: '{jp.title}' at '{jp.company}' ({jp.location}) via {jp.site or 'unknown'}")
+    if len(job_postings) > 10:
+        log.debug(f"... and {len(job_postings) - 10} additional listings retained in memory.")
 
     return job_postings
