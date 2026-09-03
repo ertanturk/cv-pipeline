@@ -96,40 +96,39 @@
 \section{Education}
 {% for edu in education %}
 \noindent
-\textbf{ {{ edu.institution }} } \hfill {{ edu.location }}\\
-\textit{ {{ edu.degree }} }{% if edu.gpa %} $\cdot$ GPA: {{ edu.gpa }}{% endif %} \hfill {{ edu.start_date }} -- {{ edu.end_date }}\\
+\textbf{ {{- edu.institution -}} } \hfill {{ edu.location }}\\
+\textit{ {{- edu.degree -}} }{% if edu.gpa %} $\cdot$ GPA: {{ edu.gpa }}{% endif %} \hfill {{ edu.start_date }} -- {{ edu.end_date }}\\
 {% if edu.coursework %}
 \textbf{Relevant Coursework:} {{ edu.coursework[:6] | join(', ') }}\\
 {% endif %}
-\vspace{1.5pt}
+\vspace{1.5pt plus 2pt minus 0.5pt}
 {% endfor %}
 
 {% if experience %}
 \section{Experience}
-{% for exp in experience[:3] %}
+{% for exp in experience %}
 \noindent
-\textbf{ {{ exp.role }} } $\mid$ \textbf{ {{ exp.company }} } \hfill {{ exp.location }}\\
-\textit{ {{ exp.employment_type }} } \hfill {{ exp.start_date }} -- {{ exp.end_date }}\\
+\textbf{ {{- exp.role -}} } $\mid$ \textbf{ {{- exp.company -}} } \hfill {{ exp.location }}\\
+\textit{ {{- exp.employment_type -}} } \hfill {{ exp.start_date }} -- {{ exp.end_date }}\\
 \begin{itemize}
-    {% for bullet in exp.bullets[:2] %}
+    {% for bullet in exp.bullets %}
     \item {{ bullet }}
     {% endfor %}
 \end{itemize}
-\vspace{2pt}
+\vspace{2pt plus 2pt minus 1pt}
 {% endfor %}
-{% endif %}
 
 \section{Technical Projects}
-{% for project in projects[:3] %}
+{% for project in projects %}
 \noindent
 \textbf{ {{- project.name -}} }{% if project.link %} \hfill \href{ {{- project.link -}} }{\footnotesize\texttt{ {{- project.link | format_url_display -}} }}{% endif %}\\
-\textit{\small {{ project.stack | join(', ') }} }\vspace{-1pt}
+\textit{\small {{ project.stack | join(', ') }}}\vspace{-1pt}
 \begin{itemize}
-    {% for bullet in project.bullets[:3] %}
+    {% for bullet in project.bullets %}
     \item {{ bullet }}
     {% endfor %}
 \end{itemize}
-\vspace{2pt}
+\vspace{2pt plus 2pt minus 1pt}
 {% endfor %}
 
 \section{Technical Skills}
@@ -146,6 +145,39 @@
     {% endif %}
 \end{itemize}
 \vspace{-2pt}
+
+{% else %}
+{# --- NO EXPERIENCE: Showcase Technical Skills right after Education, then Projects --- #}
+
+\section{Technical Skills}
+\begin{itemize}[leftmargin=*,label={}]
+    \item \textbf{Languages:} {{ skills.languages | join(', ') }}
+    {% if skills.frameworks %}
+    \item \textbf{Frameworks \& Libraries:} {{ skills.frameworks | join(', ') }}
+    {% endif %}
+    {% if skills.tools_and_systems %}
+    \item \textbf{Developer Tools \& Systems:} {{ skills.tools_and_systems | join(', ') }}
+    {% endif %}
+    {% if skills.databases %}
+    \item \textbf{Databases \& Infrastructure:} {{ skills.databases | join(', ') }}
+    {% endif %}
+\end{itemize}
+\vspace{-2pt}
+
+\section{Technical Projects}
+{% for project in projects %}
+\noindent
+\textbf{ {{- project.name -}} }{% if project.link %} \hfill \href{ {{- project.link -}} }{\footnotesize\texttt{ {{- project.link | format_url_display -}} }}{% endif %}\\
+\textit{\small {{ project.stack | join(', ') }}}\vspace{-1pt}
+\begin{itemize}
+    {% for bullet in project.bullets %}
+    \item {{ bullet }}
+    {% endfor %}
+\end{itemize}
+\vspace{2pt plus 2pt minus 1pt}
+{% endfor %}
+
+{% endif %}
 
 {% else %}
 {# --- JUNIOR TIER HIERARCHY --- #}
@@ -167,38 +199,38 @@
 
 {% if experience %}
 \section{Experience}
-{% for exp in experience[:3] %}
+{% for exp in experience %}
 \noindent
-\textbf{ {{ exp.role }} } $\mid$ \textbf{ {{ exp.company }} } \hfill {{ exp.location }}\\
-\textit{ {{ exp.employment_type }} } \hfill {{ exp.start_date }} -- {{ exp.end_date }}\\
+\textbf{ {{- exp.role -}} } $\mid$ \textbf{ {{- exp.company -}} } \hfill {{ exp.location }}\\
+\textit{ {{- exp.employment_type -}} } \hfill {{ exp.start_date }} -- {{ exp.end_date }}\\
 \begin{itemize}
-    {% for bullet in exp.bullets[:3] %}
+    {% for bullet in exp.bullets %}
     \item {{ bullet }}
     {% endfor %}
 \end{itemize}
-\vspace{2pt}
+\vspace{2pt plus 2pt minus 1pt}
 {% endfor %}
 {% endif %}
 
 \section{Technical Projects}
-{% for project in projects[:3] %}
+{% for project in projects %}
 \noindent
 \textbf{ {{- project.name -}} }{% if project.link %} \hfill \href{ {{- project.link -}} }{\footnotesize\texttt{ {{- project.link | format_url_display -}} }}{% endif %}\\
-\textit{\small {{ project.stack | join(', ') }} }\vspace{-1pt}
+\textit{\small {{ project.stack | join(', ') }}}\vspace{-1pt}
 \begin{itemize}
-    {% for bullet in project.bullets[:3] %}
+    {% for bullet in project.bullets %}
     \item {{ bullet }}
     {% endfor %}
 \end{itemize}
-\vspace{2pt}
+\vspace{2pt plus 2pt minus 1pt}
 {% endfor %}
 
 \section{Education}
 {% for edu in education %}
 \noindent
-\textbf{ {{ edu.institution }} } \hfill {{ edu.location }}\\
-\textit{ {{ edu.degree }} }{% if edu.gpa %} $\cdot$ GPA: {{ edu.gpa }}{% endif %} \hfill {{ edu.start_date }} -- {{ edu.end_date }}\\
-\vspace{1.5pt}
+\textbf{ {{- edu.institution -}} } \hfill {{ edu.location }}\\
+\textit{ {{- edu.degree -}} }{% if edu.gpa %} $\cdot$ GPA: {{ edu.gpa }}{% endif %} \hfill {{ edu.start_date }} -- {{ edu.end_date }}\\
+\vspace{1.5pt plus 2pt minus 0.5pt}
 {% endfor %}
 
 {% endif %}

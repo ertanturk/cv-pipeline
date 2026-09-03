@@ -499,7 +499,7 @@ def run_pipeline(
             "-j",
             help="Target number of active job postings to scrape. / Taranacak aktif iş ilanı sayısı.",
         ),
-    ] = 50,
+    ] = 100,
     max_analyze: Annotated[
         int | None,
         typer.Option(
@@ -840,6 +840,33 @@ def run_pipeline(
                         pass_index=pass_index, pages=page_count
                     )
                     console.print(f"{GLYPH_WARN} [warning]{pass_oversize}[/warning]")
+
+            if not fitted and len(tailored_resume.projects) > 3:
+                log.warning(
+                    f"Page budget still exceeded ({page_count} pages). "
+                    "Pruning lowest-priority project to guarantee 1-page fit..."
+                )
+                while not fitted and len(tailored_resume.projects) > 3:
+                    tailored_resume.projects = tailored_resume.projects[:-1]
+                    log.info(
+                        f"Retrying compilation with top {len(tailored_resume.projects)} projects..."
+                    )
+                    pdf_path = run_compiler(
+                        resume_data=tailored_resume,
+                        template_dir=str(PROJECT_ROOT / "templates"),
+                        template_name=template_name,
+                        output_dir=str(output_dir),
+                        output_filename=out_filename,
+                        keep_tex=True,
+                    )
+                    page_count = count_pdf_pages(pdf_path)
+                    if page_count <= 1:
+                        fitted = True
+                        log.info(
+                            f"Resume fitted to 1 page with {len(tailored_resume.projects)} projects "
+                            f"({pdf_path.stat().st_size / 1024:.1f} KB)."
+                        )
+                        break
 
             if not fitted:
                 log.error(

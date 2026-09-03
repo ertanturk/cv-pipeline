@@ -71,7 +71,7 @@ Core Rules:
 9. Do not use em dashes. Use commas or periods instead.
 10. Avoid these hollow/inflated words: "utilize", "leverage", "spearheaded", "passionate", "dynamic", "synergy", "cutting-edge", "game-changer", "unlock", "revolutionize", "seamless", "robust" (unless it's a verified technical term), "world-class", "results-driven".
 11. Implicit Subject (STRICT): Never start a bullet with the pronoun "I". English resume bullets drop the subject entirely — begin directly with the past-tense action verb (e.g. "Mentored 40+ students...", not "I mentored 40+ students..."). This applies to every bullet in every section, regardless of the grammatical person used internally.
-12. Strict 1-Page Layout Economy & Item Selection: A professional engineering resume has an absolute 1-page limit. When multiple projects, experiences, or credentials compete for space, strictly prioritize the most technically rigorous and role-aligned items. For technical projects, only the top 3 strongest, most role-relevant projects can be accommodated on the resume. Experiences and certifications must be similarly prioritized to prevent multi-page overflow.
+12. Strict 1-Page Layout Economy & Item Selection: A professional engineering resume has an absolute 1-page limit. When multiple projects, experiences, or credentials compete for space, strictly prioritize the most technically rigorous and role-aligned items. For technical projects, prioritize the strongest, most role-relevant projects allocated for the layout (up to 3-5 depending on candidate experience level and section budget). Experiences and certifications must be similarly prioritized to prevent multi-page overflow.
 """.strip()
 
 
@@ -152,7 +152,7 @@ Temel Kurallar:
 7. Gereksiz sıfat ve zarfları at (ör. "son derece", "oldukça", "gerçekten", "büyük bir titizlikle").
 8. Em dash (—) kullanma; virgül veya nokta kullan. Noktalı virgül kullanma.
 9. Şu klişe/yapay ifadelerden kaçın: "yolculuk", "potansiyel", "sinerji", "güçlendirmek", "dönüştürmek", "yenilikçi çözümler", "vizyoner", "tutkuyla", "uçtan uca çözüm", "değer katmak", "fark yaratmak", "en iyi deneyim", "köklü", "kusursuz".
-10. Tek Sayfa Alan Ekonomisi ve Önceliklendirme (1-Page Economy): Teknik özgeçmiş kesinlikle tek sayfaya sığmalıdır. Eğer aday profilinde birden fazla proje, deneyim veya sertifika varsa, hedeflenen rol ve pozisyon ile en güçlü örtüşen en fazla 3 teknik projeyi ve en etkili deneyimleri seç. Sayfa bütçesini aşacak gereksiz veya zayıf detayları ele.
+10. Tek Sayfa Alan Ekonomisi ve Önceliklendirme (1-Page Economy): Teknik özgeçmiş kesinlikle tek sayfaya sığmalıdır. Eğer aday profilinde birden fazla proje, deneyim veya sertifika varsa, hedeflenen rol ve pozisyon ile en güçlü örtüşen teknik projeleri (sayfa bütçesine göre tahsis edilen sayıda, 3-5 arası) ve en etkili deneyimleri seç. Sayfa bütçesini aşacak gereksiz veya zayıf detayları ele.
 
 {TURKISH_LOCALIZATION_DIRECTIVES}
 """.strip()

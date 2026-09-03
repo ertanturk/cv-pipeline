@@ -230,7 +230,7 @@ def run_scraper(
     target_count: int = 40,
     location: str = "Istanbul, Turkey",
     sites: list[str] | None = None,
-    hours_old: int = 2160,
+    hours_old: int = 4320,  # last 6 months
     country_indeed: str = "turkey",
     job_type: str | None = None,
     role_title: str | None = None,

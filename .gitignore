@@ -17,3 +17,6 @@ output/
 
 # Assets
 assets/*
+
+# Data
+data/profile.yaml

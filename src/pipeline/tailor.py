@@ -90,10 +90,34 @@ def resolve_profile_photo(
     return None
 
 
-MAX_PROJECTS = 3
+MAX_PROJECTS_DEFAULT = 3
 MAX_EXPERIENCE = 3
 MAX_LEADERSHIP = 2
 MAX_CERTIFICATIONS = 3
+
+
+def compute_dynamic_project_limit(
+    candidate_tier: str,
+    num_experience: int,
+    num_leadership: int = 0,
+    num_certs: int = 0,
+    available_projects: int = 0,
+) -> int:
+    """Dynamically calculates maximum project allocation based on page budget and available profile sections."""
+    if num_experience == 0:
+        # When candidate has no professional experience, projects are the primary demonstration of competency.
+        # If leadership or certifications are present, allocate 4 projects; otherwise up to 5 projects.
+        target = 4 if (num_leadership > 0 or num_certs > 0) else 5
+    elif num_experience == 1:
+        target = 4
+    else:
+        # 2 or more experience entries require significant vertical space.
+        target = 3
+
+    if available_projects > 0:
+        target = min(target, available_projects)
+
+    return max(1, target)
 
 
 def _score_project_alignment(
@@ -272,6 +296,43 @@ def run_tailor(
         databases=_reorder_skill_list(raw_skills.get("databases") or [], market_weights),
     )
 
+    personal = raw_dict.get("personal_info") or {}
+    raw_exp = raw_dict.get("experience") or []
+    if len(raw_exp) > MAX_EXPERIENCE:
+        log.info(
+            f"Candidate profile includes {len(raw_exp)} experience entries; selecting top "
+            f"{MAX_EXPERIENCE} most recent/relevant entries to guarantee 1-page fit."
+        )
+        selected_exp = raw_exp[:MAX_EXPERIENCE]
+    else:
+        selected_exp = raw_exp
+
+    raw_lead = raw_dict.get("leadership") or []
+    if len(raw_lead) > MAX_LEADERSHIP:
+        log.info(
+            f"Candidate profile includes {len(raw_lead)} leadership entries; selecting top "
+            f"{MAX_LEADERSHIP} entries to guarantee 1-page fit."
+        )
+        selected_lead = raw_lead[:MAX_LEADERSHIP]
+    else:
+        selected_lead = raw_lead
+
+    raw_certs = raw_dict.get("certifications") or []
+    if len(raw_certs) > MAX_CERTIFICATIONS:
+        log.info(
+            f"Candidate profile includes {len(raw_certs)} certifications; selecting top "
+            f"{MAX_CERTIFICATIONS} entries to guarantee 1-page fit."
+        )
+        selected_certs = raw_certs[:MAX_CERTIFICATIONS]
+    else:
+        selected_certs = raw_certs
+
+    if isinstance(target_role, RoleMatchResult):
+        candidate_tier = target_role.candidate_tier
+    else:
+        profile_tier = _normalize_lookup_key(raw_dict.get("candidate_tier"))
+        candidate_tier = profile_tier if profile_tier in {"student", "junior"} else "student"
+
     raw_projects: list[dict[str, Any]] = raw_dict.get("projects") or []
     sorted_projects = sorted(
         raw_projects,
@@ -279,12 +340,21 @@ def run_tailor(
         reverse=True,
     )
 
-    if len(sorted_projects) > MAX_PROJECTS:
+    dynamic_max_projects = compute_dynamic_project_limit(
+        candidate_tier=candidate_tier,
+        num_experience=len(selected_exp),
+        num_leadership=len(selected_lead),
+        num_certs=len(selected_certs),
+        available_projects=len(sorted_projects),
+    )
+
+    if len(sorted_projects) > dynamic_max_projects:
         log.info(
-            f"Candidate profile includes {len(sorted_projects)} projects; selecting top "
-            f"{MAX_PROJECTS} strongest projects for '{resolved_role}' to guarantee 1-page fit."
+            f"Candidate profile includes {len(sorted_projects)} projects; dynamic allocation selects "
+            f"top {dynamic_max_projects} projects for '{resolved_role}' "
+            f"(experience count: {len(selected_exp)}, tier: {candidate_tier}) to guarantee optimal 1-page fit."
         )
-        selected_projects = sorted_projects[:MAX_PROJECTS]
+        selected_projects = sorted_projects[:dynamic_max_projects]
     else:
         selected_projects = sorted_projects
 
@@ -323,7 +393,7 @@ def run_tailor(
                 top_skills=top_keywords,
                 target_role=resolved_role,
                 language=language,
-                max_projects=MAX_PROJECTS,
+                max_projects=dynamic_max_projects,
             )
             for batch_pos, item in enumerate(batch_res.projects):
                 bullets = [b.text.strip() for b in item.bullets if b.text and b.text.strip()]
@@ -369,28 +439,6 @@ def run_tailor(
                 bullets=resolved_project_bullets,
             )
         )
-
-    personal = raw_dict.get("personal_info") or {}
-    raw_exp = raw_dict.get("experience") or []
-    if len(raw_exp) > MAX_EXPERIENCE:
-        log.info(
-            f"Candidate profile includes {len(raw_exp)} experience entries; selecting top "
-            f"{MAX_EXPERIENCE} most recent/relevant entries to guarantee 1-page fit."
-        )
-        selected_exp = raw_exp[:MAX_EXPERIENCE]
-    else:
-        selected_exp = raw_exp
-
-    raw_lead = raw_dict.get("leadership") or []
-    if len(raw_lead) > MAX_LEADERSHIP:
-        log.info(
-            f"Candidate profile includes {len(raw_lead)} leadership entries; selecting top "
-            f"{MAX_LEADERSHIP} entries to guarantee 1-page fit."
-        )
-        selected_lead = raw_lead[:MAX_LEADERSHIP]
-    else:
-        selected_lead = raw_lead
-
     # Tailor summary, experience, and leadership sections
     final_summary = personal.get("summary") or ""
     sec_res: TailoredNonProjectContent | None = None
@@ -462,16 +510,6 @@ def run_tailor(
             )
         )
 
-    raw_certs = raw_dict.get("certifications") or []
-    if len(raw_certs) > MAX_CERTIFICATIONS:
-        log.info(
-            f"Candidate profile includes {len(raw_certs)} certifications; selecting top "
-            f"{MAX_CERTIFICATIONS} entries to guarantee 1-page fit."
-        )
-        selected_certs = raw_certs[:MAX_CERTIFICATIONS]
-    else:
-        selected_certs = raw_certs
-
     def _parse_items(model: type[BaseModel], raw: list[Any]) -> list[Any]:
         items = []
         for entry in raw:
@@ -483,12 +521,6 @@ def run_tailor(
 
     profile_dir = profile_input.parent if isinstance(profile_input, Path) else None
     photo: str | None = resolve_profile_photo(personal.get("photo_path"), profile_dir=profile_dir)
-
-    if isinstance(target_role, RoleMatchResult):
-        candidate_tier = target_role.candidate_tier
-    else:
-        profile_tier = _normalize_lookup_key(raw_dict.get("candidate_tier"))
-        candidate_tier = profile_tier if profile_tier in {"student", "junior"} else "student"
 
     resolved_title = personal.get("title") or ""
     if not resolved_title:
@@ -508,7 +540,7 @@ def run_tailor(
         education=_parse_items(EducationItem, raw_dict.get("education") or []),
         skills=tailored_skills,
         languages=_parse_items(SpokenLanguageItem, raw_dict.get("languages") or []),
-        projects=tailored_projects[:MAX_PROJECTS],
+        projects=tailored_projects[:dynamic_max_projects],
         experience=tailored_experience[:MAX_EXPERIENCE],
         candidate_tier=candidate_tier,
         leadership=tailored_leadership[:MAX_LEADERSHIP],
