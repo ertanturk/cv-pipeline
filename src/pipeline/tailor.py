@@ -270,7 +270,9 @@ def run_tailor(
                     clean_name = _normalize_lookup_key(item.project_name)
                     if clean_name:
                         tailored_bullets_by_name[clean_name].append(bullets)
-                    log.debug(f"Project '{item.project_name}' tailored: {len(bullets)} bullets generated")
+                    log.debug(
+                        f"Project '{item.project_name}' tailored: {len(bullets)} bullets generated"
+                    )
         except Exception as exc:
             log.warning(f"Batch project tailoring failed, falling back to raw highlights: {exc}")
     tailored_projects: list[ProjectItem] = []

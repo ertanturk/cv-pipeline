@@ -31,7 +31,8 @@ class SessionLogger:
         if cls._instance is not None:
             # Reconfigure stream handler to respect updated verbose or quiet flags
             stream_handlers = [
-                h for h in cls._instance.handlers
+                h
+                for h in cls._instance.handlers
                 if isinstance(h, logging.StreamHandler) and not isinstance(h, logging.FileHandler)
             ]
             if quiet:

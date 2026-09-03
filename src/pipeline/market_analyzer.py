@@ -181,9 +181,13 @@ def run_market_analyzer(
         total_pruned_chars += pruned_len
         if pruned_len >= 40:
             prepared_payloads.append({"title": job.title, "company": job.company, "text": pruned})
-            log.debug(f"Job #{idx} ('{job.title}' at '{job.company}'): pruned {raw_len} -> {pruned_len} chars")
+            log.debug(
+                f"Job #{idx} ('{job.title}' at '{job.company}'): pruned {raw_len} -> {pruned_len} chars"
+            )
         else:
-            log.warning(f"Job #{idx} ('{job.title}') description too short after pruning ({pruned_len} chars); skipping.")
+            log.warning(
+                f"Job #{idx} ('{job.title}') description too short after pruning ({pruned_len} chars); skipping."
+            )
 
     log.debug(
         f"Pruning complete: {len(prepared_payloads)}/{len(target_pool)} postings retained "

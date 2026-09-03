@@ -43,7 +43,9 @@ class KeyManager:
             log.debug("Gemini API key resolved from GEMINI_API_KEY environment variable.")
             return env_key
 
-        log.debug("No Gemini API key found in either OS keyring or GEMINI_API_KEY environment variable.")
+        log.debug(
+            "No Gemini API key found in either OS keyring or GEMINI_API_KEY environment variable."
+        )
         return None
 
     @classmethod
@@ -83,4 +85,3 @@ class KeyManager:
         except Exception as exc:
             log.error(f"Failed to delete Gemini API key from OS keyring: {exc}")
             raise RuntimeError(f"Failed to delete Gemini API key from OS keyring: {exc}") from exc
-

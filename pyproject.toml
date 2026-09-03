@@ -1,7 +1,7 @@
 [project]
 name = "cv-pipeline"
 version = "0.1.0"
-description = "Market-driven automated ATS resume generator"
+description = "Market-driven automated ATS resume generator for cs students"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

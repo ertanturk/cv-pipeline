@@ -63,8 +63,6 @@ class JobExtractionResult(BaseModel):
     methodologies: list[str] = Field(default_factory=list)
 
 
-
-
 class EducationItem(BaseModel):
     """Academic degree, institution, GPA, and relevant coursework record."""
 
@@ -134,7 +132,6 @@ class CertificationItem(BaseModel):
     name: str = ""
     issuer: str = ""
     date: str = ""
-
 
 
 class ResumeData(BaseModel):

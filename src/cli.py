@@ -709,11 +709,15 @@ def run_pipeline(
         compact_mode_applied = False
         compact_pass_used = 0
         page_count = count_pdf_pages(pdf_path)
-        log.info(f"Initial PDF compiled: {page_count} page(s) ({pdf_path.stat().st_size / 1024:.1f} KB)")
+        log.info(
+            f"Initial PDF compiled: {page_count} page(s) ({pdf_path.stat().st_size / 1024:.1f} KB)"
+        )
         if page_count > 1:
             compact_mode_applied = True
             initial_page_count = page_count
-            log.warning(f"Resume exceeded 1 page target ({page_count} pages). Initiating automated compact mode.")
+            log.warning(
+                f"Resume exceeded 1 page target ({page_count} pages). Initiating automated compact mode."
+            )
             if not quiet:
                 compact_start = tr_message("compact_mode_start", ui_lang).format(pages=page_count)
                 console.print(f"{GLYPH_WARN} [warning]{compact_start}[/warning]")

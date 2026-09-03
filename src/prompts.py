@@ -202,7 +202,9 @@ If no verifiable metric exists in the source data, keep the impact technical and
 Always use first-person singular ("geliştirdim/kurdum/yürüttüm"). If team_size > 1, frame individual contributions within the team context using first-person ownership (e.g., "Led the backend implementation in a 3-person team..."). Never switch to third-person singular.
 """.strip()
     if is_tr:
-        return f"{base_prompt}\n\nTURKISH LOCALIZATION DIRECTIVES:\n{TURKISH_LOCALIZATION_DIRECTIVES}"
+        return (
+            f"{base_prompt}\n\nTURKISH LOCALIZATION DIRECTIVES:\n{TURKISH_LOCALIZATION_DIRECTIVES}"
+        )
     return base_prompt
 
 
@@ -254,7 +256,9 @@ PROJECTS TO TAILOR:
 {chr(10).join(formatted_projects)}
 """.strip()
     if is_tr:
-        return f"{base_prompt}\n\nTURKISH LOCALIZATION DIRECTIVES:\n{TURKISH_LOCALIZATION_DIRECTIVES}"
+        return (
+            f"{base_prompt}\n\nTURKISH LOCALIZATION DIRECTIVES:\n{TURKISH_LOCALIZATION_DIRECTIVES}"
+        )
     return base_prompt
 
 
@@ -287,7 +291,8 @@ def build_tailor_profile_sections_prompt(
     is_tr = language.lower().strip() == "tr"
     lang_instruction = "Turkish" if is_tr else "English"
 
-    turkish_directives = f"""
+    turkish_directives = (
+        f"""
 Turkish Language Directives:
 - Write as a native Turkish CV author would — native engineering synthesis, never a literal word-for-word translation of the English syntax.
 - ACTIVE VOICE PRIORITY: Turkish CVs read stronger in active voice. Do NOT default every sentence to passive forms ("geliştirildi", "sağlandı", "entegre edildi", "kurgulandı"). Passive is allowed occasionally for variety, never as the default pattern.
@@ -306,7 +311,10 @@ Turkish Language Directives:
 - No em dashes (—); use commas or periods. No semicolons.
 
 {TURKISH_LOCALIZATION_DIRECTIVES}
-""".strip() if is_tr else ""
+""".strip()
+        if is_tr
+        else ""
+    )
 
     directives_block = f"\n\n{turkish_directives}" if turkish_directives else ""
 
@@ -351,12 +359,18 @@ def build_compact_resume_prompt(
     is_tr = language.lower().strip() == "tr"
     lang_instruction = "Turkish" if is_tr else "English"
 
-    turkish_compression_directives = f"""
+    turkish_compression_directives = (
+        f"""
 TURKISH COMPRESSION & LOCALIZATION DIRECTIVES:
 {TURKISH_LOCALIZATION_DIRECTIVES}
-""".strip() if is_tr else ""
+""".strip()
+        if is_tr
+        else ""
+    )
 
-    directives_block = f"\n\n{turkish_compression_directives}" if turkish_compression_directives else ""
+    directives_block = (
+        f"\n\n{turkish_compression_directives}" if turkish_compression_directives else ""
+    )
 
     return f"""
 Output Language: {lang_instruction}

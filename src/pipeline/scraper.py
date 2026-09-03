@@ -295,7 +295,9 @@ def run_scraper(
     log.debug(f"Total raw listings collected before filtering: {initial_count}")
 
     if combined_df.empty:
-        log.warning(f"No valid job postings remained after deduplication for location='{location}'.")
+        log.warning(
+            f"No valid job postings remained after deduplication for location='{location}'."
+        )
         return []
 
     domain_keywords: frozenset[str] = (
@@ -377,7 +379,9 @@ def run_scraper(
         f"(deduplicated from {initial_count} raw listings)."
     )
     for idx, jp in enumerate(job_postings[:10], start=1):
-        log.debug(f"Retained listing #{idx}: '{jp.title}' at '{jp.company}' ({jp.location}) via {jp.site or 'unknown'}")
+        log.debug(
+            f"Retained listing #{idx}: '{jp.title}' at '{jp.company}' ({jp.location}) via {jp.site or 'unknown'}"
+        )
     if len(job_postings) > 10:
         log.debug(f"... and {len(job_postings) - 10} additional listings retained in memory.")
 
