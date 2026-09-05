@@ -145,19 +145,32 @@ def _compact_introduces_new_numbers(original: ResumeData, compacted: CompactResu
 def _build_fallback_search_queries(role_title: str) -> list[str]:
     """Build lightweight fallback queries when role matching lacks enough data."""
     role = role_title.strip()
-    candidates = [
-        role,
-        f"{role} intern",
-        f"{role} internship",
-        f"junior {role}",
-    ]
+    lower_role = role.lower()
+    is_intern = any(w in lower_role for w in ("intern", "staj", "student"))
+    base_role = re.sub(
+        r"\b(intern|internship|staj|stajyer)\b", "", role, flags=re.IGNORECASE
+    ).strip()
+    base_role = " ".join(base_role.split())
+
+    candidates: list[str] = [role]
+    if base_role and base_role.casefold() != role.casefold():
+        candidates.append(base_role)
+    if is_intern:
+        if base_role:
+            candidates.append(f"{base_role} Intern")
+            candidates.append(f"Junior {base_role}")
+    else:
+        candidates.append(f"{role} Developer")
+        candidates.append(f"Junior {role}")
+
     deduped: list[str] = []
     seen: set[str] = set()
     for item in candidates:
-        key = item.casefold().strip()
+        cleaned = " ".join(item.split())
+        key = cleaned.casefold()
         if key and key not in seen:
             seen.add(key)
-            deduped.append(item.strip())
+            deduped.append(cleaned)
     return deduped
 
 
@@ -499,7 +512,7 @@ def run_pipeline(
             "-j",
             help="Target number of active job postings to scrape. / Taranacak aktif iş ilanı sayısı.",
         ),
-    ] = 100,
+    ] = 50,
     max_analyze: Annotated[
         int | None,
         typer.Option(

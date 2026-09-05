@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import re
 from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -49,6 +50,10 @@ _STRUCTURAL_TERMS: frozenset[str] = frozenset(
         "at",
         "for",
         "&",
+        "to",
+        "with",
+        "system",
+        "systems",
     }
 )
 
@@ -66,21 +71,99 @@ _SENIOR_GUARD_TERMS: frozenset[str] = frozenset(
         "staff",
         "distinguished",
         "fellow",
+        "kıdemli",
+        "yönetici",
+        "direktör",
+        "müdür",
     }
 )
 
-_EARLY_CAREER_INDICATORS: frozenset[str] = frozenset({"intern", "internship", "junior", "entry"})
+_EARLY_CAREER_INDICATORS: frozenset[str] = frozenset(
+    {
+        "intern",
+        "internship",
+        "junior",
+        "entry",
+        "staj",
+        "stajyer",
+        "stajyeri",
+        "stajyerleri",
+        "student",
+        "co-op",
+        "coop",
+        "trainee",
+        "candidate",
+        "aday",
+        "öğrenci",
+        "part-time",
+        "yarı zamanlı",
+    }
+)
+
+_TURKISH_TECH_TERMS: frozenset[str] = frozenset(
+    {
+        "yazılım",
+        "bilişim",
+        "bilgisayar",
+        "geliştirici",
+        "kod",
+        "programcı",
+        "teknoloji",
+        "teknolojileri",
+    }
+)
+
+_NON_SOFTWARE_DOMAINS: frozenset[str] = frozenset(
+    {
+        "thermal",
+        "mechanical",
+        "civil",
+        "chemical",
+        "hvac",
+        "simulation",
+        "supply chain",
+        "sales",
+        "marketing",
+        "accounting",
+        "recruiter",
+        "hr",
+        "talent acquisition",
+        "legal",
+        "customer success",
+        "credit risk",
+        "solidworks",
+        "biorefinery",
+        "account manager",
+        "ot systems",
+        "operational technology",
+    }
+)
 
 _FETCH_BUFFER: int = 3
+
+
+def _normalize_text(text: str) -> str:
+    """Normalizes compound terms and hyphenated phrases."""
+    t = text.lower()
+    t = re.sub(r"back[\s\-_]+end", "backend", t)
+    t = re.sub(r"front[\s\-_]+end", "frontend", t)
+    t = re.sub(r"full[\s\-_]+stack", "fullstack", t)
+    t = re.sub(r"dev[\s\-_]+ops", "devops", t)
+    return t
+
+
+def _tokenize(text: str) -> set[str]:
+    """Tokenizes text extracting clean word tokens, stripping punctuation and brackets."""
+    return set(re.findall(r"[a-zA-ZçğıöşüÇĞİÖŞÜ0-9\+#]+", _normalize_text(text)))
 
 
 def _build_domain_keywords(texts: Sequence[str]) -> frozenset[str]:
     """Extracts subject-matter domain keywords from multiple text sources (role title + search queries)."""
     result: set[str] = set()
     for text in texts:
-        result.update(
-            w.lower() for w in text.replace("&", " ").split() if w.lower() not in _STRUCTURAL_TERMS
-        )
+        for w in _tokenize(text):
+            if w not in _STRUCTURAL_TERMS and len(w) > 2:
+                result.add(w)
     return frozenset(result)
 
 
@@ -89,31 +172,135 @@ def _is_early_career(job_type: str | None, role_title: str | None) -> bool:
     if job_type and job_type.lower() == "internship":
         return True
     if role_title:
-        return bool({w.lower() for w in role_title.split()} & _EARLY_CAREER_INDICATORS)
+        return bool(_tokenize(role_title) & _EARLY_CAREER_INDICATORS)
     return False
 
 
 def _is_senior_posting(job_title: str) -> bool:
     """Returns True if the job title contains a seniority-guard term."""
-    return bool({w.lower() for w in job_title.split()} & _SENIOR_GUARD_TERMS)
+    return bool(_tokenize(job_title) & _SENIOR_GUARD_TERMS)
 
 
-def _is_domain_relevant(job_title: str, domain_keywords: frozenset[str]) -> bool:
-    """Returns True if the posting title shares at least one domain keyword with the target role."""
-    if not domain_keywords:
+def _is_domain_relevant(
+    job_title: str,
+    domain_keywords: frozenset[str],
+    description: str = "",
+    is_early_career: bool = False,
+    is_turkey: bool = False,
+) -> bool:
+    """Returns True if the posting is domain relevant to the target role."""
+    norm_title = _normalize_text(job_title)
+    title_tokens = _tokenize(job_title)
+
+    # 1. Reject titles with clearly non-software domain terms unless explicit software keywords present
+    has_excluded = any(ex in norm_title for ex in _NON_SOFTWARE_DOMAINS)
+    has_explicit_tech = bool(
+        title_tokens
+        & {
+            "software",
+            "backend",
+            "frontend",
+            "fullstack",
+            "yazılım",
+            "python",
+            "developer",
+            "engineer",
+            "c++",
+            "java",
+        }
+    )
+    if has_excluded and not has_explicit_tech:
+        return False
+
+    # 2. Check direct domain keywords match on title
+    if domain_keywords and bool(domain_keywords & title_tokens):
         return True
-    posting_words: frozenset[str] = frozenset(w.lower() for w in job_title.split())
-    return bool(domain_keywords & posting_words)
+
+    # 3. Core software engineering keywords match
+    if bool(title_tokens & {"software", "backend", "developer", "python", "java", "c++"}):
+        return True
+
+    # 4. Turkish tech equivalents if target market is Turkey
+    if is_turkey and bool(title_tokens & _TURKISH_TECH_TERMS):
+        return True
+
+    # 5. Generic early career postings (intern, stajyer, co-op, student)
+    if is_early_career:
+        is_early_title = bool(title_tokens & _EARLY_CAREER_INDICATORS)
+        if is_early_title:
+            if any(
+                term in norm_title
+                for term in (
+                    "engineer",
+                    "mühendis",
+                    "developer",
+                    "geliştirici",
+                    "tech",
+                    "bilişim",
+                    "teknoloji",
+                    "bilgi",
+                    "r&d",
+                    "network",
+                    "data",
+                    "cloud",
+                    "it",
+                )
+            ):
+                return True
+            if description:
+                desc_tokens = _tokenize(description[:1500])
+                tech_probe = domain_keywords | {
+                    "software",
+                    "backend",
+                    "python",
+                    "code",
+                    "database",
+                    "api",
+                    "git",
+                    "linux",
+                    "yazılım",
+                }
+                if bool(desc_tokens & tech_probe):
+                    return True
+            # For Turkey, branded tech internship programs without explicit exclude
+            if is_turkey and not has_excluded:
+                return True
+
+    # 6. Check description for strong domain signals if title was borderline
+    if description and domain_keywords:
+        desc_tokens = _tokenize(description[:1000])
+        if len(desc_tokens & domain_keywords) >= 2:
+            return True
+
+    return False
 
 
-def _sanitize_queries(raw_queries: Sequence[str]) -> list[str]:
-    """Simplifies overly specific 4+ word queries to 3 core search terms for higher hit rates."""
+def _sanitize_queries(raw_queries: Sequence[str], location: str = "") -> list[str]:
+    """Cleans search queries by removing redundant words and extraneous location tokens."""
+    loc_words = set(re.findall(r"[a-zA-ZçğıöşüÇĞİÖŞÜ]+", location.lower())) if location else set()
     sanitized: list[str] = []
+
     for q in raw_queries:
-        clean: str = q.strip()
-        words: list[str] = clean.split()
-        sanitized.append(" ".join(words[:3]) if len(words) > 3 else clean)
-    return list(dict.fromkeys(sanitized))
+        clean = q.strip()
+        words = [w for w in clean.split() if w.lower() not in loc_words]
+        if not words:
+            continue
+
+        if len(words) > 3:
+            lower_words = [w.lower() for w in words]
+            filtered = []
+            for w in words:
+                wl = w.lower()
+                if wl == "engineering" and ("software" in lower_words or "backend" in lower_words):
+                    continue
+                filtered.append(w)
+            words = filtered[:3] if len(filtered) > 3 else filtered
+
+        candidate = " ".join(words)
+        if candidate and candidate not in sanitized:
+            sanitized.append(candidate)
+
+    return sanitized
 
 
 def _scrape_query(
@@ -147,6 +334,8 @@ def _scrape_query(
             if not df.empty:
                 log.debug(f"Retrieved {len(df)} listings from {site} for '{query}'")
                 frames.append(df)
+            else:
+                log.debug(f"Site '{site}' returned 0 listings for '{query}'")
         except Exception as exc:
             log.warning(f"Scraper error on {site} for query '{query}': {exc}")
     return frames
@@ -219,7 +408,7 @@ def _normalize_and_deduplicate(frames: list[pd.DataFrame]) -> pd.DataFrame:
     df_with_id: pd.DataFrame = combined[has_identity].drop_duplicates(
         subset=["title", "company"], keep="first"
     )
-    df_no_id: pd.DataFrame = combined[~has_identity]
+    df_no_id = combined[~has_identity]
     combined = pd.concat([df_with_id, df_no_id], ignore_index=True)
 
     return combined[combined["title"] != ""].reset_index(drop=True)
@@ -255,7 +444,18 @@ def run_scraper(
             code=ExitCode.SCRAPER_ERROR,
         )
 
-    resolved_queries: list[str] = _sanitize_queries(raw_queries)
+    is_turkey: bool = country_indeed.lower() in {"turkey", "tr"} or any(
+        loc_term in location.lower() for loc_term in ("turkey", "türkiye", "istanbul")
+    )
+
+    resolved_queries: list[str] = _sanitize_queries(raw_queries, location=location)
+    is_early: bool = _is_early_career(job_type, role_title)
+
+    if is_turkey and is_early:
+        local_additions = ["Software Intern", "Yazılım Stajyer"]
+        for q in local_additions:
+            if q not in resolved_queries and len(resolved_queries) < 6:
+                resolved_queries.append(q)
 
     default_sites: list[str] = ["linkedin", "indeed", "google"]
     scrape_sites: list[str]
@@ -306,7 +506,7 @@ def run_scraper(
     log.debug(f"Domain keywords for relevancy filtering: {sorted(domain_keywords)}")
 
     pre_filter_count: int = len(combined_df)
-    if _is_early_career(job_type, role_title):
+    if is_early:
         combined_df = combined_df[~combined_df["title"].apply(_is_senior_posting)]
         log.debug(
             f"Seniority guard removed {pre_filter_count - len(combined_df)} senior listings; "
@@ -316,22 +516,60 @@ def run_scraper(
     if domain_keywords:
         pre_domain_count: int = len(combined_df)
         combined_df = combined_df[
-            combined_df["title"].apply(lambda t: _is_domain_relevant(t, domain_keywords))
+            combined_df.apply(
+                lambda row: _is_domain_relevant(
+                    job_title=row["title"],
+                    domain_keywords=domain_keywords,
+                    description=row.get("description", ""),
+                    is_early_career=is_early,
+                    is_turkey=is_turkey,
+                ),
+                axis=1,
+            )
         ]
         log.debug(f"Domain filter kept {len(combined_df)}/{pre_domain_count} listings.")
 
-    if len(combined_df) < target_count and _is_early_career(job_type, role_title) and job_type:
+    if len(combined_df) < target_count:
         deficit: int = target_count - len(combined_df)
         log.info(
             f"Primary pool has {len(combined_df)}/{target_count} listings. "
-            f"Backfilling {deficit} with non-senior general postings..."
+            f"Backfilling deficit of {deficit} with broader postings..."
         )
 
+        backfill_candidates: list[str]
+        if is_early:
+            if is_turkey:
+                backfill_candidates = [
+                    "Software Intern",
+                    "Yazılım Stajyer",
+                    "Backend Developer",
+                    "Python Developer",
+                    "Software Engineer",
+                ]
+            else:
+                backfill_candidates = [
+                    "Software Intern",
+                    "Junior Software Engineer",
+                    "Backend Developer",
+                    "Python Developer",
+                ]
+        else:
+            backfill_candidates = [
+                role_title or "Software Engineer",
+                "Backend Developer",
+                "Software Engineer",
+                "Python Developer",
+            ]
+
+        backfill_queries = [q for q in backfill_candidates if q not in resolved_queries]
+        if not backfill_queries:
+            backfill_queries = ["Software Developer", "Python Developer", "Backend Developer"]
+
         backfill_per_query: int = max(
-            10, math.ceil(deficit * _FETCH_BUFFER / len(resolved_queries))
+            10, math.ceil(deficit * _FETCH_BUFFER / len(backfill_queries))
         )
         backfill_frames: list[pd.DataFrame] = _scrape_raw(
-            resolved_queries,
+            backfill_queries,
             scrape_sites,
             backfill_per_query,
             location,
@@ -342,10 +580,20 @@ def run_scraper(
 
         if backfill_frames:
             backfill_df: pd.DataFrame = _normalize_and_deduplicate(backfill_frames)
-            backfill_df = backfill_df[~backfill_df["title"].apply(_is_senior_posting)]
+            if is_early:
+                backfill_df = backfill_df[~backfill_df["title"].apply(_is_senior_posting)]
             if domain_keywords:
                 backfill_df = backfill_df[
-                    backfill_df["title"].apply(lambda t: _is_domain_relevant(t, domain_keywords))
+                    backfill_df.apply(
+                        lambda row: _is_domain_relevant(
+                            job_title=row["title"],
+                            domain_keywords=domain_keywords,
+                            description=row.get("description", ""),
+                            is_early_career=is_early,
+                            is_turkey=is_turkey,
+                        ),
+                        axis=1,
+                    )
                 ]
             combined_df = pd.concat([combined_df, backfill_df], ignore_index=True)
 

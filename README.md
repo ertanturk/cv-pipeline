@@ -176,6 +176,11 @@ languages:
       level: "Fluent"
     - name: "Turkish"
       level: "Native"
+
+hobbies:
+    - "Open-Source Tooling"
+    - "Distributed Systems Architecture"
+    - "Chess & Algorithmic Puzzles"
 ```
 
 ### 2. Validate Profile Syntax

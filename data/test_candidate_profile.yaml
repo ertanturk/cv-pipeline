@@ -113,3 +113,10 @@ certifications:
     - name: "PostgreSQL & Relational Database Design"
       issuer: "Coursera / Meta"
       date: "2025"
+
+hobbies:
+    - "Open-Source Tooling & Systems Programming"
+    - "Algorithmic Puzzles & Strategy Games"
+    - "Linux Systems Programming"
+    - "Cycling"
+

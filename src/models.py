@@ -1,6 +1,6 @@
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 def _coerce_str_list(v: Any) -> list[str]:
@@ -184,6 +184,21 @@ class CertificationItem(BaseModel):
     date: str = ""
 
 
+class HobbyItem(BaseModel):
+    """Personal hobby, interest, or extracurricular pursuit."""
+
+    model_config = ConfigDict(coerce_numbers_to_str=True, extra="ignore")
+
+    name: str = ""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_model(cls, v: Any) -> Any:
+        if isinstance(v, str):
+            return {"name": v}
+        return v
+
+
 class ResumeData(BaseModel):
     """Final validated payload injected into resume_tr.tex.j2 or resume_en.tex.j2."""
 
@@ -208,6 +223,28 @@ class ResumeData(BaseModel):
     experience: list[ExperienceItem] = Field(default_factory=list)
     leadership: list[LeadershipItem] = Field(default_factory=list)
     certifications: list[CertificationItem] = Field(default_factory=list)
+    hobbies: list[str] = Field(default_factory=list)
+
+    @field_validator("hobbies", mode="before")
+    @classmethod
+    def _coerce_hobbies(cls, v: Any) -> list[str]:
+        if v is None:
+            return []
+        if isinstance(v, list):
+            result: list[str] = []
+            for item in v:
+                if isinstance(item, BaseModel):
+                    val = getattr(item, "name", "") or str(item)
+                    if val:
+                        result.append(str(val).strip())
+                elif isinstance(item, dict):
+                    val = item.get("name") or item.get("title") or item.get("hobby") or ""
+                    if val:
+                        result.append(str(val).strip())
+                elif item is not None and str(item).strip():
+                    result.append(str(item).strip())
+            return result
+        return _coerce_str_list(v)
 
 
 class MarketSkill(BaseModel):

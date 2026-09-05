@@ -16,7 +16,7 @@ Operational Directives:
 3. Alternative Roles: In addition to the primary role, provide 1-2 secondary/alternative role suggestions with a lower confidence_score, in case the primary path is saturated.
 4. Confidence Scoring: Assign a confidence_score (0-100) reflecting how strongly the evidence supports each recommended role.
 5. Insufficient Data Handling: If the profile lacks enough concrete evidence, set "status" to "insufficient_data", leave role recommendations empty, and explain what additional information is needed.
-6. High-Intent Query Generation: Formulate 2 to 4 concise, high-conversion search query strings tailored for recruitment search engines.
+6. High-Intent Query Generation: Formulate 2 to 4 concise, high-conversion search query strings tailored for recruitment search engines (ideally 2-3 words each, e.g., "Backend Developer", "Software Engineer Intern", "Python Developer"). Do not include location or city names in search_queries as geographic location is handled separately by the search engine. Ensure queries strictly align with software engineering/backend disciplines.
 7. Strategic Rationale: Provide a concise, evidence-based justification highlighting the primary intersection between the candidate's demonstrated competencies and current industry demands. Never cite a skill not present in the source profile.
 """.strip()
 

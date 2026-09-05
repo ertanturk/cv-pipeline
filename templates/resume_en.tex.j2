@@ -104,6 +104,21 @@
 \vspace{1.5pt plus 2pt minus 0.5pt}
 {% endfor %}
 
+\section{Technical Skills}
+\begin{itemize}[leftmargin=*,label={}]
+    \item \textbf{Languages:} {{ skills.languages | join(', ') }}
+    {% if skills.frameworks %}
+    \item \textbf{Frameworks \& Libraries:} {{ skills.frameworks | join(', ') }}
+    {% endif %}
+    {% if skills.tools_and_systems %}
+    \item \textbf{Developer Tools \& Systems:} {{ skills.tools_and_systems | join(', ') }}
+    {% endif %}
+    {% if skills.databases %}
+    \item \textbf{Databases \& Infrastructure:} {{ skills.databases | join(', ') }}
+    {% endif %}
+\end{itemize}
+\vspace{-2pt}
+
 {% if experience %}
 \section{Experience}
 {% for exp in experience %}
@@ -117,67 +132,20 @@
 \end{itemize}
 \vspace{2pt plus 2pt minus 1pt}
 {% endfor %}
-
-\section{Technical Projects}
-{% for project in projects %}
-\noindent
-\textbf{ {{- project.name -}} }{% if project.link %} \hfill \href{ {{- project.link -}} }{\footnotesize\texttt{ {{- project.link | format_url_display -}} }}{% endif %}\\
-\textit{\small {{ project.stack | join(', ') }}}\vspace{-1pt}
-\begin{itemize}
-    {% for bullet in project.bullets %}
-    \item {{ bullet }}
-    {% endfor %}
-\end{itemize}
-\vspace{2pt plus 2pt minus 1pt}
-{% endfor %}
-
-\section{Technical Skills}
-\begin{itemize}[leftmargin=*,label={}]
-    \item \textbf{Languages:} {{ skills.languages | join(', ') }}
-    {% if skills.frameworks %}
-    \item \textbf{Frameworks \& Libraries:} {{ skills.frameworks | join(', ') }}
-    {% endif %}
-    {% if skills.tools_and_systems %}
-    \item \textbf{Developer Tools \& Systems:} {{ skills.tools_and_systems | join(', ') }}
-    {% endif %}
-    {% if skills.databases %}
-    \item \textbf{Databases \& Infrastructure:} {{ skills.databases | join(', ') }}
-    {% endif %}
-\end{itemize}
-\vspace{-2pt}
-
-{% else %}
-{# --- NO EXPERIENCE: Showcase Technical Skills right after Education, then Projects --- #}
-
-\section{Technical Skills}
-\begin{itemize}[leftmargin=*,label={}]
-    \item \textbf{Languages:} {{ skills.languages | join(', ') }}
-    {% if skills.frameworks %}
-    \item \textbf{Frameworks \& Libraries:} {{ skills.frameworks | join(', ') }}
-    {% endif %}
-    {% if skills.tools_and_systems %}
-    \item \textbf{Developer Tools \& Systems:} {{ skills.tools_and_systems | join(', ') }}
-    {% endif %}
-    {% if skills.databases %}
-    \item \textbf{Databases \& Infrastructure:} {{ skills.databases | join(', ') }}
-    {% endif %}
-\end{itemize}
-\vspace{-2pt}
-
-\section{Technical Projects}
-{% for project in projects %}
-\noindent
-\textbf{ {{- project.name -}} }{% if project.link %} \hfill \href{ {{- project.link -}} }{\footnotesize\texttt{ {{- project.link | format_url_display -}} }}{% endif %}\\
-\textit{\small {{ project.stack | join(', ') }}}\vspace{-1pt}
-\begin{itemize}
-    {% for bullet in project.bullets %}
-    \item {{ bullet }}
-    {% endfor %}
-\end{itemize}
-\vspace{2pt plus 2pt minus 1pt}
-{% endfor %}
-
 {% endif %}
+
+\section{Technical Projects}
+{% for project in projects %}
+\noindent
+\textbf{ {{- project.name -}} }{% if project.link %} \hfill \href{ {{- project.link -}} }{\footnotesize\texttt{ {{- project.link | format_url_display -}} }}{% endif %}\\
+\textit{\small {{ project.stack | join(', ') }}}\vspace{-1pt}
+\begin{itemize}
+    {% for bullet in project.bullets %}
+    \item {{ bullet }}
+    {% endfor %}
+\end{itemize}
+\vspace{2pt plus 2pt minus 1pt}
+{% endfor %}
 
 {% else %}
 {# --- JUNIOR TIER HIERARCHY --- #}
@@ -235,13 +203,6 @@
 
 {% endif %}
 
-{% if languages %}
-\section{Spoken Languages}
-\noindent
-{% for lang in languages %}\textbf{ {{- lang.name -}} }: {{ lang.level }}{% if not loop.last %} \enspace$\vert$\enspace {% endif %}{% endfor %}\\
-\vspace{1.5pt}
-{% endif %}
-
 {% if leadership %}
 \section{Leadership \& Open Source}
 {% for item in leadership[:2] %}
@@ -263,6 +224,20 @@
     \item \textbf{ {{ cert.name }} } -- {{ cert.issuer }} \hfill {{ cert.date }}
     {% endfor %}
 \end{itemize}
+{% endif %}
+
+{% if languages %}
+\section{Spoken Languages}
+\noindent
+{% for lang in languages %}\textbf{ {{- lang.name -}} }: {{ lang.level }}{% if not loop.last %} \enspace$\vert$\enspace {% endif %}{% endfor %}\\
+\vspace{1.5pt}
+{% endif %}
+
+{% if hobbies %}
+\section{Hobbies \& Interests}
+\noindent
+{% for hobby in hobbies %}{% if hobby.name is defined %}{{ hobby.name }}{% else %}{{ hobby }}{% endif %}{% if not loop.last %} \enspace$\vert$\enspace {% endif %}{% endfor %}\\
+\vspace{1.5pt}
 {% endif %}
 
 \end{document}

@@ -171,6 +171,9 @@ def _sanitize_resume_data(data: ResumeData) -> ResumeData:
         cert.issuer = escape_latex(cert.issuer)
         cert.date = escape_latex(cert.date)
 
+    # Hobbies
+    sanitized.hobbies = [escape_latex(h) for h in sanitized.hobbies]
+
     return sanitized
 
 

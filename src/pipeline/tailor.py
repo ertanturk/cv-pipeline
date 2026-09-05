@@ -545,6 +545,7 @@ def run_tailor(
         candidate_tier=candidate_tier,
         leadership=tailored_leadership[:MAX_LEADERSHIP],
         certifications=_parse_items(CertificationItem, selected_certs)[:MAX_CERTIFICATIONS],
+        hobbies=raw_dict.get("hobbies") or [],
     )
 
     return resume_data
